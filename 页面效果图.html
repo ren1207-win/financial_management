@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>财务数据看板 · 页面效果图</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink-1: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-mut: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --ring: rgba(11,11,11,0.10);
+    --s1: #2a78d6;  /* blue */
+    --s2: #eb6834;  /* orange */
+    --s3: #1baf7a;  /* aqua */
+    --s4: #eda100;  /* yellow */
+    --s5: #e87ba4;  /* magenta */
+    --s8: #e34948;  /* red */
+    --success: #006300;
+    --chart-bg: #fbf6e8;  /* 暖黄色图表背景 */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink-1: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-mut: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --ring: rgba(255,255,255,0.10);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --s4: #c98500;
+      --s5: #d55181;
+      --s8: #e66767;
+      --success: #0ca30c;
+      --chart-bg: #33290f;  /* 夜间模式下的暖黄色深色调 */
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink-1);
+    padding: 24px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; margin: 0; }
+  .header .sub { font-size: 13px; color: var(--ink-2); }
+  .actions { display: flex; align-items: center; gap: 16px; }
+  .refresh-btn {
+    border: 1px solid var(--ring);
+    background: var(--surface);
+    color: var(--ink-1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .refresh-btn:hover { background: var(--grid); }
+  /* filter row */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .filter-pill {
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--ring);
+    font-size: 13px;
+    color: var(--ink-2);
+    background: var(--surface);
+    cursor: pointer;
+  }
+  .filter-pill.active { background: var(--ink-1); color: var(--page); border-color: var(--ink-1); }
+  /* card grid */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--ring);
+    border-radius: 14px;
+    padding: 18px 18px 12px;
+    position: relative;
+  }
+  .card.span2 { grid-column: span 2; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+  .card-sub { font-size: 11px; color: var(--ink-mut); margin-top: 2px; }
+  /* corner badge for net assets */
+  .net-badge {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    text-align: right;
+  }
+  .net-badge .label { font-size: 11px; color: var(--ink-mut); }
+  .net-badge .value { font-size: 24px; font-weight: 600; color: var(--success); }
+  /* legend */
+  .legend { display: flex; gap: 16px; margin: 10px 0 6px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .line-key { width: 18px; height: 3px; border-radius: 2px; flex: none; }
+  /* chart container */
+  .chart {
+    width: 100%;
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+    background: var(--chart-bg);
+    border-radius: 8px;
+  }
+  .chart.tall { height: 220px; }
+  .axis-label {
+    position: absolute;
+    font-size: 10px;
+    color: var(--ink-mut);
+  }
+  .x-axis { bottom: 0; }
+  /* interaction hint */
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    margin-top: 16px;
+    border: 1px dashed var(--axis);
+    border-radius: 10px;
+    color: var(--ink-2);
+    font-size: 12px;
+  }
+  .hint span { display: flex; align-items: center; gap: 5px; }
+  .kbd {
+    border: 1px solid var(--ring);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    background: var(--surface);
+    color: var(--ink-2);
+  }
+  /* SVG chart body */
+  .chart svg { width: 100%; height: 100%; display: block; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .axis-line { stroke: var(--axis); stroke-width: 1; }
+  .line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .area-fill { opacity: 0.10; }
+  .tick-label { font-size: 10px; fill: var(--ink-mut); }
+  .end-label { font-size: 10px; fill: var(--ink-2); }
+  .pie-slice { }
+  .caption { font-size: 11px; color: var(--ink-mut); margin-top: 6px; text-align: center; }
+  .mini-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; margin-top: 8px;}
+  .mini-stat { font-size: 11px; color: var(--ink-2); }
+  .mini-stat b { color: var(--ink-1); font-weight: 600; }
+  footer { margin-top: 20px; font-size: 12px; color: var(--ink-mut); text-align: center; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>财务数据看板</h1>
+      <div class="sub">数据源：资产配置.xlsx · 更新于 2026/9/15</div>
+    </div>
+    <div class="actions">
+      <button class="refresh-btn">↻ 刷新数据</button>
+    </div>
+  </div>
+
+  <!-- 时间区间筛选 -->
+  <div class="filter-row">
+    <span class="filter-pill active">最近1年</span>
+    <span class="filter-pill">最近3年</span>
+    <span class="filter-pill">最近5年</span>
+    <span class="filter-pill">全部</span>
+  </div>
+
+  <div class="cards">
+
+    <!-- 卡片1：总资产·负债·净资产 -->
+    <div class="card">
+      <div class="card-title">总资产 · 负债 · 净资产</div>
+      <div class="card-sub">总资产与负债变化对比，净资产为衍生指标（总资产 − 负债）</div>
+      <div class="net-badge">
+        <div class="label">净资产</div>
+        <div class="value">¥ 92.5万</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>总资产</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s8)"></span>负债</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>净资产</div>
+      </div>
+      <div class="chart tall">
+        <svg viewBox="0 0 640 220" preserveAspectRatio="none">
+          <!-- gridlines -->
+          <line class="gridline" x1="40" y1="20" x2="640" y2="20"/>
+          <line class="gridline" x1="40" y1="70" x2="640" y2="70"/>
+          <line class="gridline" x1="40" y1="120" x2="640" y2="120"/>
+          <line class="gridline" x1="40" y1="170" x2="640" y2="170"/>
+          <!-- axis -->
+          <line class="axis-line" x1="40" y1="220" x2="640" y2="220"/>
+          <!-- 总资产 (blue) -->
+          <path class="line" style="stroke:var(--s1)" d="M40,40 C90,38 120,34 160,44 C200,54 240,50 280,60 C320,70 360,66 400,72 C440,78 480,74 520,82 C560,90 600,86 640,94"/>
+          <!-- 负债 (red) -->
+          <path class="line" style="stroke:var(--s8)" d="M40,150 C90,152 120,158 160,154 C200,150 240,156 280,152 C320,148 360,154 400,150 C440,146 480,152 520,150 C560,148 600,152 640,150"/>
+          <!-- 净资产 (aqua) -->
+          <path class="line" style="stroke:var(--s3)" d="M40,60 C90,58 120,54 160,58 C200,62 240,58 280,64 C320,70 360,66 400,72 C440,78 480,74 520,80 C560,86 600,82 640,88"/>
+          <!-- x tick labels -->
+          <text class="tick-label" x="40" y="212">2025/9</text>
+          <text class="tick-label" x="200" y="212">2025/12</text>
+          <text class="tick-label" x="360" y="212">2026/3</text>
+          <text class="tick-label" x="520" y="212">2026/6</text>
+          <text class="tick-label" x="640" y="212">2026/9</text>
+        </svg>
+      </div>
+      <div class="caption">滚轮放大/缩小 · 左键拖动 · 右侧固定左侧移动</div>
+    </div>
+
+    <!-- 卡片2：流动资金 -->
+    <div class="card">
+      <div class="card-title">流动资金</div>
+      <div class="card-sub">活期 + 应急资金</div>
+      <div class="net-badge">
+        <div class="label">总额</div>
+        <div class="value">¥ 13.2万</div>
+      </div>
+      <div class="mini-grid">
+        <div class="mini-stat">活期 <b>¥ 8.2万</b></div>
+        <div class="mini-stat">应急资金 <b>¥ 5.0万</b></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>活期</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s4)"></span>应急资金</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>流动资金</div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 300 200" preserveAspectRatio="none">
+          <line class="gridline" x1="40" y1="30" x2="300" y2="30"/>
+          <line class="gridline" x1="40" y1="90" x2="300" y2="90"/>
+          <line class="gridline" x1="40" y1="150" x2="300" y2="150"/>
+          <line class="axis-line" x1="40" y1="200" x2="300" y2="200"/>
+          <path class="line" style="stroke:var(--s1)" d="M40,60 C90,56 130,62 170,58 C210,54 250,60 300,52"/>
+          <path class="line" style="stroke:var(--s4)" d="M40,110 C90,106 130,112 170,108 C210,104 250,110 300,102"/>
+          <path class="line" style="stroke:var(--s3)" d="M40,72 C90,68 130,74 170,70 C210,66 250,72 300,64"/>
+          <text class="tick-label" x="40" y="192">2025/9</text>
+          <text class="tick-label" x="300" y="192">2026/9</text>
+        </svg>
+      </div>
+      <div class="caption">滚轮放大/缩小 · 左键拖动 · 右侧固定左侧移动</div>
+    </div>
+
+    <!-- 卡片3：投资资金 -->
+    <div class="card">
+      <div class="card-title">投资资金</div>
+      <div class="card-sub">投资储备金 + 稳健性基金 + 风险性基金 + 股票</div>
+      <div class="net-badge">
+        <div class="label">总额</div>
+        <div class="value">¥ 58.7万</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>储备金</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>稳健基金</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s2)"></span>风险基金</div>
+        <div class="legend-item"><span class="line-key" style="background:var(--s5)"></span>股票</div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 300 200" preserveAspectRatio="none">
+          <line class="gridline" x1="40" y1="30" x2="300" y2="30"/>
+          <line class="gridline" x1="40" y1="90" x2="300" y2="90"/>
+          <line class="gridline" x1="40" y1="150" x2="300" y2="150"/>
+          <line class="axis-line" x1="40" y1="200" x2="300" y2="200"/>
+          <path class="line" style="stroke:var(--s1)" d="M40,80 C90,76 130,82 170,78 C210,74 250,80 300,72"/>
+          <path class="line" style="stroke:var(--s3)" d="M40,60 C90,58 130,56 170,60 C210,64 250,58 300,66"/>
+          <path class="line" style="stroke:var(--s2)" d="M40,130 C90,126 130,132 170,128 C210,124 250,130 300,122"/>
+          <path class="line" style="stroke:var(--s5)" d="M40,110 C90,114 130,108 170,112 C210,116 250,110 300,118"/>
+          <text class="tick-label" x="40" y="192">2025/9</text>
+          <text class="tick-label" x="300" y="192">2026/9</text>
+        </svg>
+      </div>
+      <div class="caption">滚轮放大/缩小 · 左键拖动 · 右侧固定左侧移动</div>
+    </div>
+
+    <!-- 卡片4：公积金 -->
+    <div class="card">
+      <div class="card-title">公积金</div>
+      <div class="card-sub">公积金账户数值</div>
+      <div class="net-badge">
+        <div class="label">总额</div>
+        <div class="value">¥ 12.8万</div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 300 180" preserveAspectRatio="none">
+          <line class="gridline" x1="40" y1="30" x2="300" y2="30"/>
+          <line class="gridline" x1="40" y1="90" x2="300" y2="90"/>
+          <line class="gridline" x1="40" y1="150" x2="300" y2="150"/>
+          <line class="axis-line" x1="40" y1="180" x2="300" y2="180"/>
+          <path class="line" style="stroke:var(--s8)" d="M40,130 C90,124 130,118 170,112 C210,106 250,100 300,88"/>
+          <text class="tick-label" x="40" y="172">2025/9</text>
+          <text class="tick-label" x="300" y="172">2026/9</text>
+        </svg>
+      </div>
+      <div class="caption">滚轮放大/缩小 · 左键拖动 · 右侧固定左侧移动</div>
+    </div>
+
+    <!-- 卡片5：总资产构成占比（饼图 W/X/Y） -->
+    <div class="card">
+      <div class="card-title">总资产构成占比</div>
+      <div class="card-sub">流动资金 · 固定资本 · 投资</div>
+      <div class="chart" style="height:170px">
+        <svg viewBox="0 0 300 170" preserveAspectRatio="none">
+          <circle cx="130" cy="85" r="52" fill="none" stroke-width="26"/>
+          <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s1)" stroke-width="26"
+                  stroke-dasharray="120 250" transform="rotate(-90 130 85)"/>
+          <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s8)" stroke-width="26"
+                  stroke-dasharray="50 250" transform="rotate(-90 130 85)" stroke-dashoffset="-120"/>
+          <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s3)" stroke-width="26"
+                  stroke-dasharray="80 250" transform="rotate(-90 130 85)" stroke-dashoffset="-170"/>
+          <text class="tick-label" x="130" y="80" text-anchor="middle" fill="var(--ink-1)">总资产</text>
+        </svg>
+      </div>
+      <div class="legend" style="justify-content:center">
+        <div class="legend-item"><span class="dot" style="background:var(--s1)"></span>流动资金 48%</div>
+        <div class="legend-item"><span class="dot" style="background:var(--s8)"></span>固定资本 20%</div>
+        <div class="legend-item"><span class="dot" style="background:var(--s3)"></span>投资 32%</div>
+      </div>
+    </div>
+
+    <!-- 卡片6：投资资金构成占比（饼图 Z/AA/AB） -->
+    <div class="card">
+      <div class="card-title">投资资金构成占比</div>
+      <div class="card-sub">储备金 · 风险仓位 · 稳健仓位</div>
+      <div class="chart" style="height:170px">
+        <svg viewBox="0 0 300 170" preserveAspectRatio="none">
+          <circle cx="130" cy="85" r="52" fill="none" stroke-width="26"/>
+          <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s4)" stroke-width="26"
+                  stroke-dasharray="70 250" transform="rotate(-90 130 85)"/>
+          <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s2)" stroke-width="26"
+                  stroke-dasharray="90 250" transform="rotate(-90 130 85)" stroke-dashoffset="-70"/>
+          <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s3)" stroke-width="26"
+                  stroke-dasharray="90 250" transform="rotate(-90 130 85)" stroke-dashoffset="-160"/>
+          <text class="tick-label" x="130" y="80" text-anchor="middle" fill="var(--ink-1)">投资资金</text>
+        </svg>
+      </div>
+      <div class="legend" style="justify-content:center">
+        <div class="legend-item"><span class="dot" style="background:var(--s4)"></span>储备金 28%</div>
+        <div class="legend-item"><span class="dot" style="background:var(--s2)"></span>风险仓位 36%</div>
+        <div class="legend-item"><span class="dot" style="background:var(--s3)"></span>稳健仓位 36%</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 交互提示 -->
+  <div class="hint">
+    <span><span class="kbd">滚轮↑</span>放大</span>
+    <span><span class="kbd">滚轮↓</span>缩小</span>
+    <span><span class="kbd">左键拖动</span>平移时间轴</span>
+    <span>缩放时<strong>右侧固定</strong>、左侧移动</span>
+  </div>
+
+  <footer>一期需求 · 数据可视化看板 · 圆滑曲线 + 饼图构成 · 卡片式单页布局</footer>
+
+</body>
+</html>
