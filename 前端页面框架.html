@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务数据看板</title>
+    <style>
+        :root {
+            /* 颜色变量 */
+            --page-bg: #fbf6e8;      /* 页面暖黄色背景 */
+            --card-bg: #fbf3dc;      /* 卡片暖黄色背景 */
+            --ink-primary: #0b0b0b;
+            --ink-secondary: #52514e;
+            --grid-line: #e1e0d9;
+            --axis-line: #c3c2b7;
+            --ring: rgba(11,11,11,0.10);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background-color: var(--page-bg);
+            color: var(--ink-primary);
+            padding: 24px;
+        }
+
+        /* 页面头部样式 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .header .sub {
+            font-size: 13px;
+            color: var(--ink-secondary);
+            margin-top: 4px;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .refresh-btn {
+            border: 1px solid var(--ring);
+            background: var(--card-bg);
+            color: var(--ink-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--grid-line);
+        }
+
+        /* 时间筛选区域 */
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            padding: 5px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--ring);
+            font-size: 13px;
+            color: var(--ink-secondary);
+            background: var(--card-bg);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-pill:hover {
+            background: var(--grid-line);
+        }
+
+        .filter-pill.active {
+            background: var(--ink-primary);
+            color: var(--page-bg);
+            border-color: var(--ink-primary);
+        }
+
+        /* 卡片网格布局 */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        /* 卡片基础样式 - 整个卡片为暖黄色 */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--ring);
+            border-radius: 14px;
+            padding: 18px 18px 12px;
+            position: relative;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink-secondary);
+            margin-bottom: 4px;
+        }
+
+        .card-sub {
+            font-size: 11px;
+            color: var(--ink-secondary);
+            margin-bottom: 10px;
+        }
+
+        /* 图表容器 - 暖黄色背景，与卡片一致 */
+        .chart {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            background: var(--card-bg);
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px dashed var(--axis-line);
+        }
+
+        .chart.tall {
+            height: 220px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面头部 -->
+    <div class="header">
+        <div>
+            <h1>财务数据看板</h1>
+            <div class="sub">数据源：资产配置.xlsx · 更新于 2026/9/15</div>
+        </div>
+        <div class="actions">
+            <button class="refresh-btn">↻ 刷新数据</button>
+        </div>
+    </div>
+
+    <!-- 时间筛选区域 -->
+    <div class="filter-row">
+        <span class="filter-pill active">最近1年</span>
+        <span class="filter-pill">最近3年</span>
+        <span class="filter-pill">最近5年</span>
+        <span class="filter-pill">全部</span>
+    </div>
+
+    <!-- 数据卡片区域 -->
+    <div class="cards">
+        <!-- 卡片1：总资产·负债·净资产 -->
+        <div class="card">
+            <div class="card-title">总资产 · 负债 · 净资产</div>
+            <div class="card-sub">总资产与负债变化对比，净资产为衍生指标（总资产 − 负债）</div>
+            <div class="chart tall">
+                <!-- 图表将在这里渲染 -->
+            </div>
+        </div>
+
+        <!-- 卡片2：流动资金 -->
+        <div class="card">
+            <div class="card-title">流动资金</div>
+            <div class="card-sub">活期 + 应急资金</div>
+            <div class="chart">
+                <!-- 图表将在这里渲染 -->
+            </div>
+        </div>
+
+        <!-- 卡片3：投资资金 -->
+        <div class="card">
+            <div class="card-title">投资资金</div>
+            <div class="card-sub">投资储备金 + 稳健性基金 + 风险性基金 + 股票</div>
+            <div class="chart">
+                <!-- 图表将在这里渲染 -->
+            </div>
+        </div>
+
+        <!-- 卡片4：公积金 -->
+        <div class="card">
+            <div class="card-title">公积金</div>
+            <div class="card-sub">公积金账户数值</div>
+            <div class="chart">
+                <!-- 图表将在这里渲染 -->
+            </div>
+        </div>
+
+        <!-- 卡片5：总资产构成占比 -->
+        <div class="card">
+            <div class="card-title">总资产构成占比</div>
+            <div class="card-sub">流动资金 · 固定资本 · 投资</div>
+            <div class="chart">
+                <!-- 图表将在这里渲染 -->
+            </div>
+        </div>
+
+        <!-- 卡片6：投资资金构成占比 -->
+        <div class="card">
+            <div class="card-title">投资资金构成占比</div>
+            <div class="card-sub">储备金 · 风险仓位 · 稳健仓位</div>
+            <div class="chart">
+                <!-- 图表将在这里渲染 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('财务数据看板页面框架已加载完成');
+
+            // 刷新按钮点击事件
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.addEventListener('click', function() {
+                console.log('数据刷新按钮被点击');
+                // 这里将来会实现实际的数据刷新逻辑
+            });
+
+            // 时间筛选按钮点击事件
+            const filterPills = document.querySelectorAll('.filter-pill');
+            filterPills.forEach(pill => {
+                pill.addEventListener('click', function() {
+                    // 移除所有激活状态
+                    filterPills.forEach(p => p.classList.remove('active'));
+                    // 添加当前激活状态
+                    this.classList.add('active');
+                    console.log(`时间范围切换到: ${this.textContent}`);
+                    // 这里将来会实现时间范围切换逻辑
+                });
+            });
+        });
+    </script>
+</body>
+</html>
