@@ -275,6 +275,13 @@ class ChartRenderer {
 
         // 生成 x 轴标签（固定位置，避免缩放变形）
         this.generateAxisLabels(container, left, right, minTime, maxTime);
+
+        // 存储参数，供缩放时动态更新标签
+        container.dataset.minTime = minTime;
+        container.dataset.maxTime = maxTime;
+        container.dataset.plotLeft = left;
+        container.dataset.plotRight = right;
+        container.dataset.origViewBoxW = vbW;
     }
 
     // 生成平滑曲线路径（三次贝塞尔）
@@ -586,6 +593,73 @@ class FinancialChartHandler {
         windowX = Math.min(maxWindowX, Math.max(minWindowX, windowX));
 
         svg.setAttribute('viewBox', `${windowX} ${s.oy} ${windowWidth} ${s.oh}`);
+
+        // 更新 x 轴标签以反映当前可见的时间范围
+        this.updateXLabels(chartContainer);
+    }
+
+    // 动态更新 x 轴标签，使其随缩放/平移而变化
+    updateXLabels(chartContainer) {
+        const container = chartContainer;
+        const svg = container.querySelector('svg');
+        const s = this.chartStates.get(container);
+        if (!svg || !s) return;
+
+        // 读取渲染时存储的参数
+        const minTime = parseInt(container.dataset.minTime);
+        const maxTime = parseInt(container.dataset.maxTime);
+        const plotLeft = parseFloat(container.dataset.plotLeft);
+        const plotRight = parseFloat(container.dataset.plotRight);
+        const origOw = parseFloat(container.dataset.origViewBoxW);
+
+        if (isNaN(minTime) || isNaN(maxTime) || isNaN(plotLeft) || isNaN(plotRight) || isNaN(origOw)) return;
+
+        const timeRange = maxTime - minTime || 1;
+        const plotWidth = plotRight - plotLeft;
+
+        // 当前 viewBox
+        const vb = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+        const windowX = vb[0];
+        const windowWidth = vb[2];
+
+        // viewBox x 坐标 ⟼ 时间
+        const mapXToTime = (x) => minTime + ((x - plotLeft) / plotWidth) * timeRange;
+
+        // 可见时间范围（钳位到数据范围）
+        const visibleStartX = Math.max(windowX, plotLeft);
+        const visibleEndX = Math.min(windowX + windowWidth, plotRight);
+        if (visibleStartX >= visibleEndX) {
+            const xAxisDiv = container.querySelector('.x-axis-labels');
+            if (xAxisDiv) xAxisDiv.innerHTML = '';
+            return;
+        }
+
+        const visibleStartTime = Math.max(minTime, mapXToTime(visibleStartX));
+        const visibleEndTime = Math.min(maxTime, mapXToTime(visibleEndX));
+        const visibleTimeRange = visibleEndTime - visibleStartTime || 1;
+
+        const labelCount = 5;
+        const leftMarginRatio = plotLeft / origOw;
+        const xAxisDiv = container.querySelector('.x-axis-labels');
+        if (!xAxisDiv) return;
+
+        xAxisDiv.innerHTML = '';
+
+        for (let i = 0; i < labelCount; i++) {
+            const t = visibleStartTime + visibleTimeRange * (i / (labelCount - 1));
+            const date = new Date(t);
+            // 该时间对应的 viewBox x 坐标
+            const vx = plotLeft + ((t - minTime) / timeRange) * plotWidth;
+            // 在图表中的位置比例
+            const chartFrac = (vx - windowX) / windowWidth;
+            // 在 x 轴标签容器内的位置百分比
+            const posInContainer = (chartFrac - leftMarginRatio) / (1 - 2 * leftMarginRatio) * 100;
+
+            const span = document.createElement('span');
+            span.textContent = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+            span.style.left = `${posInContainer}%`;
+            xAxisDiv.appendChild(span);
+        }
     }
 
     setupHoverEffects() {
