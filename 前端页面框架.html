@@ -65,7 +65,7 @@
         .axis-line { stroke: var(--axis-line); stroke-width: 1; }
         .ln { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .tick { font-size: 10px; fill: var(--ink-secondary); }
-        .highlight { filter: url(#highlight); }
+        .highlight { filter: drop-shadow(0 0 2px currentColor); }
         .chart-tooltip {
             position: absolute;
             background: rgba(0,0,0,0.8);
@@ -91,6 +91,37 @@
             color: var(--ink-secondary);
             white-space: nowrap;
         }
+        .file-input { display: none; }
+        .file-label {
+            display: inline-flex; align-items: center; gap: 6px;
+            border: 1px solid var(--ring); background: var(--card-bg);
+            padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer;
+        }
+        .file-label:hover { background: var(--grid-line); }
+        .data-table-section {
+            margin-top: 24px;
+            background: var(--card-bg); border: 1px solid var(--ring);
+            border-radius: 14px; padding: 18px;
+        }
+        .data-table-section h2 {
+            font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--ink-secondary);
+        }
+        .data-table {
+            width: 100%; border-collapse: collapse; font-size: 12px;
+        }
+        .data-table th, .data-table td {
+            padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--grid-line);
+            white-space: nowrap;
+        }
+        .data-table th {
+            background: var(--page-bg); color: var(--ink-secondary); font-weight: 600;
+            text-align: center;
+        }
+        .data-table td:first-child, .data-table th:first-child {
+            text-align: center;
+        }
+        .data-table tr:hover { background: rgba(0,0,0,0.02); }
+        .table-scroll { overflow-x: auto; border-radius: 8px; border: 1px solid var(--ring); }
         @media (max-width: 768px) {
             .cards { grid-template-columns: 1fr; }
             .header { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -101,9 +132,13 @@
     <div class="header">
         <div>
             <h1>财务数据看板</h1>
-            <div class="sub">数据源：资产配置.xlsx · 更新于 2026/9/15</div>
+            <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls" />
+            <div class="sub" id="dataSourceInfo">数据源：请选择资产配置 Excel 文件 · 更新于 —</div>
         </div>
-        <button class="refresh-btn">↻ 刷新数据</button>
+        <div style="display:flex;gap:8px;">
+            <label for="fileInput" class="file-label">📁 选择文件</label>
+            <button class="refresh-btn" id="refreshBtn">↻ 刷新数据</button>
+        </div>
     </div>
 
     <div class="filter-row">
@@ -261,6 +296,27 @@
         </div>
     </div>
 
+        <div class="data-table-section" id="dataTableSection" style="display:none;">
+        <h2>数据明细</h2>
+        <div class="table-scroll">
+            <table class="data-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>总资产</th>
+                        <th>负债</th>
+                        <th>净资产</th>
+                        <th>流动资金</th>
+                        <th>投资资金</th>
+                        <th>公积金</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="interactive-charts.js"></script>
 </body>
 </html>
