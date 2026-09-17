@@ -421,66 +421,13 @@ class FinancialChartHandler {
     static minYears = 0.5;
 
     constructor() {
-        this.chartStates = new Map();
         this.init();
     }
 
     init() {
         this.setupEventListeners();
-        this.setupZoomAndPan();
-        this.setupHoverEffects();
         this.setupTimeFilter();
         this.setupRefresh();
-    }
-
-    reinit() {
-        this.chartStates.clear();
-        this.setupFixedAxisLabels();
-        this.setupZoomAndPan();
-        this.setupHoverEffects();
-    }
-
-    setupFixedAxisLabels() {
-        const charts = document.querySelectorAll('.chart');
-        charts.forEach(chart => {
-            // 移除已有的外部标签
-            const existing = chart.querySelector('.x-axis-labels');
-            if (existing) existing.remove();
-
-            const svg = chart.querySelector('svg');
-            if (!svg) return;
-
-            const texts = svg.querySelectorAll('text.tick, text.tick-label');
-            if (texts.length === 0) return;
-
-            const [ox, , ow] = (svg.getAttribute('viewBox') || '0 0 600 220').split(/\s+/).map(Number);
-
-            let startX = Infinity;
-            texts.forEach(text => {
-                const x = parseFloat(text.getAttribute('x')) || 0;
-                startX = Math.min(startX, x);
-            });
-            const endX = ox + ow;
-            const plotWidth = endX - startX;
-            const leftMarginRatio = (startX - ox) / ow;
-
-            const xAxis = document.createElement('div');
-            xAxis.className = 'x-axis-labels';
-            xAxis.style.left = `${leftMarginRatio * 100}%`;
-            xAxis.style.right = `${leftMarginRatio * 100}%`;
-
-            texts.forEach(text => {
-                const x = parseFloat(text.getAttribute('x')) || 0;
-                const label = text.textContent.trim();
-                const span = document.createElement('span');
-                span.textContent = label;
-                span.style.left = `${((x - startX) / plotWidth) * 100}%`;
-                xAxis.appendChild(span);
-                text.remove();
-            });
-
-            chart.appendChild(xAxis);
-        });
     }
 
     setupEventListeners() {
@@ -497,187 +444,6 @@ class FinancialChartHandler {
                 }
             });
         }
-    }
-
-    setupZoomAndPan() {
-        const charts = document.querySelectorAll('.chart');
-        charts.forEach(chart => {
-            if (this.isPieChart(chart)) return;
-            this.initChartInteraction(chart);
-        });
-    }
-
-    isPieChart(chartContainer) {
-        const svg = chartContainer.querySelector('svg');
-        return svg ? svg.querySelectorAll('circle').length > 1 : false;
-    }
-
-    initChartInteraction(chartContainer) {
-        const svg = chartContainer.querySelector('svg');
-        if (!svg) return;
-
-        const originalViewBox = svg.getAttribute('viewBox') || '0 0 600 220';
-        const [ox, oy, ow, oh] = originalViewBox.split(/\s+/).map(Number);
-
-        const { totalYears, defaultYears, minYears } = FinancialChartHandler;
-
-        const state = {
-            ox, oy, ow, oh,
-            timeRatio: defaultYears / totalYears,
-            panX: 0,
-            isDragging: false,
-            startX: 0,
-            startPanX: 0,
-            minTimeRatio: minYears / totalYears,
-            maxTimeRatio: 1
-        };
-
-        this.chartStates.set(chartContainer, state);
-
-        chartContainer.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
-            const s = this.chartStates.get(chartContainer);
-            s.isDragging = true;
-            s.startX = e.clientX;
-            s.startPanX = s.panX;
-            chartContainer.style.cursor = 'grabbing';
-        });
-
-        chartContainer.addEventListener('mousemove', (e) => {
-            const s = this.chartStates.get(chartContainer);
-            if (!s || !s.isDragging) return;
-            const pixelDeltaX = e.clientX - s.startX;
-            const svgDeltaX = pixelDeltaX * (s.ow / chartContainer.clientWidth) * s.timeRatio;
-            s.panX = s.startPanX + svgDeltaX;
-            this.applyTimeWindow(chartContainer);
-        });
-
-        document.addEventListener('mouseup', () => {
-            const s = this.chartStates.get(chartContainer);
-            if (s && s.isDragging) {
-                s.isDragging = false;
-                chartContainer.style.cursor = 'grab';
-            }
-        });
-
-        chartContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const s = this.chartStates.get(chartContainer);
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            s.timeRatio = Math.max(s.minTimeRatio, Math.min(s.maxTimeRatio, s.timeRatio + delta));
-            this.applyTimeWindow(chartContainer);
-        }, { passive: false });
-
-        chartContainer.addEventListener('mouseleave', () => {
-            const s = this.chartStates.get(chartContainer);
-            if (s && s.isDragging) {
-                s.isDragging = false;
-                chartContainer.style.cursor = 'grab';
-            }
-        });
-
-        this.applyTimeWindow(chartContainer);
-    }
-
-    applyTimeWindow(chartContainer) {
-        const svg = chartContainer.querySelector('svg');
-        if (!svg) return;
-        const s = this.chartStates.get(chartContainer);
-        if (!s) return;
-
-        const windowWidth = s.ow * s.timeRatio;
-        let windowX = s.ox + s.ow - windowWidth + s.panX;
-
-        const minWindowX = s.ox;
-        const maxWindowX = s.ox + s.ow - windowWidth;
-        windowX = Math.min(maxWindowX, Math.max(minWindowX, windowX));
-
-        svg.setAttribute('viewBox', `${windowX} ${s.oy} ${windowWidth} ${s.oh}`);
-
-        // 更新 x 轴标签以反映当前可见的时间范围
-        this.updateXLabels(chartContainer);
-    }
-
-    // 动态更新 x 轴标签，使其随缩放/平移而变化
-    updateXLabels(chartContainer) {
-        const container = chartContainer;
-        const svg = container.querySelector('svg');
-        const s = this.chartStates.get(container);
-        if (!svg || !s) return;
-
-        // 读取渲染时存储的参数
-        const minTime = parseInt(container.dataset.minTime);
-        const maxTime = parseInt(container.dataset.maxTime);
-        const plotLeft = parseFloat(container.dataset.plotLeft);
-        const plotRight = parseFloat(container.dataset.plotRight);
-        const origOw = parseFloat(container.dataset.origViewBoxW);
-
-        if (isNaN(minTime) || isNaN(maxTime) || isNaN(plotLeft) || isNaN(plotRight) || isNaN(origOw)) return;
-
-        const timeRange = maxTime - minTime || 1;
-        const plotWidth = plotRight - plotLeft;
-
-        // 当前 viewBox
-        const vb = svg.getAttribute('viewBox').split(/\s+/).map(Number);
-        const windowX = vb[0];
-        const windowWidth = vb[2];
-
-        // viewBox x 坐标 ⟼ 时间
-        const mapXToTime = (x) => minTime + ((x - plotLeft) / plotWidth) * timeRange;
-
-        // 可见时间范围（钳位到数据范围）
-        const visibleStartX = Math.max(windowX, plotLeft);
-        const visibleEndX = Math.min(windowX + windowWidth, plotRight);
-        if (visibleStartX >= visibleEndX) {
-            const xAxisDiv = container.querySelector('.x-axis-labels');
-            if (xAxisDiv) xAxisDiv.innerHTML = '';
-            return;
-        }
-
-        const visibleStartTime = Math.max(minTime, mapXToTime(visibleStartX));
-        const visibleEndTime = Math.min(maxTime, mapXToTime(visibleEndX));
-        const visibleTimeRange = visibleEndTime - visibleStartTime || 1;
-
-        const labelCount = 5;
-        const leftMarginRatio = plotLeft / origOw;
-        const xAxisDiv = container.querySelector('.x-axis-labels');
-        if (!xAxisDiv) return;
-
-        xAxisDiv.innerHTML = '';
-
-        for (let i = 0; i < labelCount; i++) {
-            const t = visibleStartTime + visibleTimeRange * (i / (labelCount - 1));
-            const date = new Date(t);
-            // 该时间对应的 viewBox x 坐标
-            const vx = plotLeft + ((t - minTime) / timeRange) * plotWidth;
-            // 在图表中的位置比例
-            const chartFrac = (vx - windowX) / windowWidth;
-            // 在 x 轴标签容器内的位置百分比
-            const posInContainer = (chartFrac - leftMarginRatio) / (1 - 2 * leftMarginRatio) * 100;
-
-            const span = document.createElement('span');
-            span.textContent = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
-            span.style.left = `${posInContainer}%`;
-            xAxisDiv.appendChild(span);
-        }
-    }
-
-    setupHoverEffects() {
-        const chartPaths = document.querySelectorAll('.ln, .line');
-        chartPaths.forEach(path => {
-            path.addEventListener('mouseenter', (e) => this.highlightElement(e.target));
-            path.addEventListener('mouseleave', (e) => this.resetHighlight(e.target));
-        });
-    }
-
-    highlightElement(element) {
-        element.style.strokeWidth = '3px';
-        element.classList.add('highlight');
-    }
-
-    resetHighlight(element) {
-        element.style.strokeWidth = '2px';
-        element.classList.remove('highlight');
     }
 
     setupTimeFilter() {
@@ -702,27 +468,32 @@ class FinancialChartHandler {
             case '全部': targetYears = totalYears; break;
         }
 
-        this.chartStates.forEach((state, chart) => {
-            const targetRatio = Math.min(state.maxTimeRatio, Math.max(state.minTimeRatio, targetYears / totalYears));
-            state.timeRatio = targetRatio;
-            state.panX = 0;
-            this.applyTimeWindow(chart);
-        });
+        // 重新渲染图表
+        window.financialDashboard.renderChartsWithTimeRange(targetYears);
 
         console.log('时间范围切换到: ' + text);
     }
 
-    setupRefresh() {
-        // 刷新按钮事件在 setupEventListeners 中统一处理
+    // 新增方法：根据时间范围重新渲染图表
+    renderChartsWithTimeRange(targetYears) {
+        if (window.financialDashboard && window.financialDashboard.data) {
+            // 获取当前数据并调整显示范围
+            const data = window.financialDashboard.data;
+            const startIndex = Math.max(0, data.length - Math.floor(targetYears * 12)); // 假设每月一个数据点
+            const filteredData = data.slice(startIndex);
+
+            // 更新图表显示（这里只是重新初始化图表，实际可用性需要根据需要完善）
+            if (filteredData.length > 0) {
+                const renderer = new ChartRenderer(filteredData);
+                renderer.renderAll();
+                // 重新初始化交互部分
+                window.financialDashboard.chartHandler.setupTimeFilter();
+            }
+        }
     }
 
-    resetAllCharts() {
-        const { defaultYears, totalYears } = FinancialChartHandler;
-        this.chartStates.forEach((state, chart) => {
-            state.timeRatio = defaultYears / totalYears;
-            state.panX = 0;
-            this.applyTimeWindow(chart);
-        });
+    setupRefresh() {
+        // 刷新按钮事件在 setupEventListeners 中统一处理
     }
 }
 
@@ -787,7 +558,7 @@ class FinancialDashboard {
             renderer.renderAll();
 
             // 重新初始化交互（包含提取固定标签）
-            this.chartHandler.reinit();
+            // 注意：此处不调用reinit，因为我们已移除了鼠标交互功能
 
             // 填充表格
             DataTable.render(this.data);
