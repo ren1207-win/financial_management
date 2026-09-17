@@ -416,7 +416,7 @@ class ChartRenderer {
 
 // ========== 交互处理 ==========
 class FinancialChartHandler {
-    static totalYears = 2;
+    static totalYears = 1;
     static defaultYears = 1;
     static minYears = 0.5;
 
@@ -553,18 +553,36 @@ class FinancialDashboard {
             const years = this.calculateDataSpanYears();
             FinancialChartHandler.totalYears = years;
 
+            // 默认只显示最近一年的数据（如果数据量足够）
+            let displayData = this.data;
+            if (this.data.length > 12) { // 至少有12个月的数据
+                const oneYearAgo = new Date();
+                oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+                // 找到最近一年的数据开始点
+                let startIndex = 0;
+                for (let i = 0; i < this.data.length; i++) {
+                    if (this.data[i].date >= oneYearAgo) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+
+                displayData = this.data.slice(startIndex);
+            }
+
             // 渲染图表
-            const renderer = new ChartRenderer(this.data);
+            const renderer = new ChartRenderer(displayData);
             renderer.renderAll();
 
             // 重新初始化交互（包含提取固定标签）
             // 注意：此处不调用reinit，因为我们已移除了鼠标交互功能
 
             // 填充表格
-            DataTable.render(this.data);
+            DataTable.render(displayData);
 
             // 更新数据源信息
-            const latest = this.data[this.data.length - 1];
+            const latest = displayData[displayData.length - 1];
             this.updateDataSourceInfo(`数据源：${file.name} · 最新数据 ${latest.dateStr}`);
 
         } catch (err) {
@@ -583,11 +601,11 @@ class FinancialDashboard {
     }
 
     calculateDataSpanYears() {
-        if (this.data.length < 2) return 2;
+        if (this.data.length < 2) return 1;
         const start = this.data[0].date;
         const end = this.data[this.data.length - 1].date;
         const days = (end - start) / (1000 * 60 * 60 * 24);
-        return Math.max(2, days / 365);
+        return Math.max(1, days / 365);
     }
 
     updateDataSourceInfo(text) {
