@@ -43,12 +43,13 @@
             font-size: 13px; color: var(--ink-secondary); background: var(--card-bg); cursor: pointer;
         }
         .filter-pill.active { background: var(--ink-primary); color: var(--page-bg); border-color: var(--ink-primary); }
-        .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; align-items: start; }
+        .cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; align-items: start; }
         .card {
             background: var(--card-bg); border: 1px solid var(--ring);
             border-radius: 14px; padding: 18px 18px 12px; position: relative;
             display: flex;
             flex-direction: column;
+            grid-column: span 3;
             min-height: 360px;
         }
         .card-title { font-size: 14px; font-weight: 600; color: var(--ink-secondary); margin-bottom: 4px; }
@@ -62,7 +63,48 @@
         .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
         .chart { width: 100%; height: 250px; position: relative; overflow: hidden; border-radius: 8px; margin-top: auto; }
         .chart.pie-chart { height: 150px; margin-top: 0; }
-        .card:has(.pie-chart) { min-height: auto; }
+        .card:has(.pie-chart), .compound-card { grid-column: span 2; min-height: auto; align-self: stretch; }
+        .compound-examples {
+            background: var(--page-bg);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 8px 0 14px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .compound-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--grid-line);
+        }
+        .compound-row:last-child { border-bottom: none; }
+        .compound-label { color: var(--ink-secondary); font-size: 11px; }
+        .compound-value { font-weight: 600; color: var(--s3); text-align: right; font-size: 12px; }
+        .compound-form { display: flex; flex-direction: row; align-items: flex-end; gap: 8px; }
+        .compound-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .compound-form label { font-size: 11px; color: var(--ink-secondary); }
+        .compound-form input {
+            width: 100%;
+            padding: 6px 8px; border: 1px solid var(--ring); border-radius: 6px;
+            background: var(--page-bg); font-size: 12px; color: var(--ink-primary);
+        }
+        .compound-btn {
+            border: 1px solid var(--ring); background: var(--page-bg);
+            padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
+            font-weight: 500;
+            color: var(--ink-primary);
+            margin-top: 0;
+            flex: none;
+        }
+        .compound-btn:hover { background: var(--grid-line); }
+        .compound-result {
+            margin-top: 12px; padding: 10px 12px; background: var(--page-bg);
+            border-radius: 8px; font-size: 12px; line-height: 1.7;
+        }
+        .compound-result .highlight { font-weight: 600; color: var(--s3); }
         .chart canvas { width: 100%; height: 100%; display: block; }
         .data-table-section {
             margin-top: 24px;
@@ -90,6 +132,7 @@
         .table-scroll { overflow-x: auto; border-radius: 8px; border: 1px solid var(--ring); }
         @media (max-width: 768px) {
             .cards { grid-template-columns: 1fr; }
+            .card, .card:has(.pie-chart), .compound-card { grid-column: auto; align-self: start; }
             .header { flex-direction: column; align-items: flex-start; gap: 12px; }
         }
     </style>
@@ -196,6 +239,38 @@
                 <div class="legend-item"><span class="dot" style="background:var(--s4)"></span>风险仓位 36%</div>
                 <div class="legend-item"><span class="dot" style="background:var(--s3)"></span>稳健仓位 36%</div>
             </div>
+        </div>
+
+        <!-- 卡片7：复利计算器 -->
+        <div class="card compound-card">
+            <div class="card-title">复利计算器</div>
+            <div class="card-sub">一些参考数据</div>
+            <div class="compound-examples">
+                <div class="compound-row">
+                    <span class="compound-label">每年存 5 万，年化 3%</span>
+                    <span class="compound-value">10 年 ≈ 57.3万，20 年 ≈ 134.4万</span>
+                </div>
+                <div class="compound-row">
+                    <span class="compound-label">每年存 10 万，年化 3%</span>
+                    <span class="compound-value">10 年 ≈ 114.6万，20 年 ≈ 268.8万</span>
+                </div>
+                <div class="compound-row">
+                    <span class="compound-label">每年存 10 万，年化 5%</span>
+                    <span class="compound-value">10 年 ≈ 125.8万，20 年 ≈ 330.7万</span>
+                </div>
+            </div>
+            <div class="compound-form">
+                <div class="compound-field">
+                    <label>年储蓄金额（万）</label>
+                    <input type="number" id="compoundAmount" placeholder="例如 5" value="5" step="0.1">
+                </div>
+                <div class="compound-field">
+                    <label>年化利率（%）</label>
+                    <input type="number" id="compoundRate" placeholder="3" value="3" step="0.1">
+                </div>
+                <button class="compound-btn" id="compoundCalcBtn">计算</button>
+            </div>
+            <div class="compound-result" id="compoundResult"></div>
         </div>
     </div>
 

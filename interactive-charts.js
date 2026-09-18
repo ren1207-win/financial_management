@@ -666,6 +666,7 @@ class FinancialChartHandler {
         this.setupEventListeners();
         this.setupTimeFilter();
         this.setupRefresh();
+        this.setupCompoundCalculator();
     }
 
     setupEventListeners() {
@@ -739,6 +740,54 @@ class FinancialChartHandler {
 
     setupRefresh() {
         // 刷新按钮事件在 setupEventListeners 中统一处理
+    }
+
+    setupCompoundCalculator() {
+        const amountInput = document.getElementById('compoundAmount');
+        const rateInput = document.getElementById('compoundRate');
+        const btn = document.getElementById('compoundCalcBtn');
+        const resultEl = document.getElementById('compoundResult');
+        if (!amountInput || !rateInput || !btn || !resultEl) return;
+
+        const formatWan = (value) => {
+            const wan = value / 10000;
+            if (Math.abs(wan) >= 1) return `¥${wan.toFixed(1)}万`;
+            return `¥${value.toFixed(0)}`;
+        };
+
+        const calculateFV = (amount, ratePercent, years) => {
+            const r = ratePercent / 100;
+            if (r === 0) return amount * years;
+            return amount * (Math.pow(1 + r, years) - 1) / r;
+        };
+
+        const renderResult = () => {
+            const amountWan = parseFloat(amountInput.value) || 0;
+            const amount = amountWan * 10000;
+            const rate = parseFloat(rateInput.value) || 0;
+            if (amountWan <= 0 || rate < 0) {
+                resultEl.innerHTML = '<span style="color:var(--s2)">请输入有效的年储蓄金额和年化利率</span>';
+                return;
+            }
+
+            const fv10 = calculateFV(amount, rate, 10);
+            const fv20 = calculateFV(amount, rate, 20);
+            const principal10 = amount * 10;
+            const principal20 = amount * 20;
+
+            resultEl.innerHTML = `
+                <div>10 年后：<span class="highlight">${formatWan(fv10)}</span>
+                    <span style="color:var(--ink-secondary)">（本金 ${formatWan(principal10)}，收益 ${formatWan(fv10 - principal10)}）</span>
+                </div>
+                <div>20 年后：<span class="highlight">${formatWan(fv20)}</span>
+                    <span style="color:var(--ink-secondary)">（本金 ${formatWan(principal20)}，收益 ${formatWan(fv20 - principal20)}）</span>
+                </div>
+            `;
+        };
+
+        btn.addEventListener('click', renderResult);
+        // 默认计算一次
+        renderResult();
     }
 }
 
