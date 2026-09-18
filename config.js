@@ -1,0 +1,24 @@
+// 系统配置文件
+const CONFIG = {
+    // 默认数据源路径
+    DATA_SOURCE_PATH: 'data.xlsx',
+
+    // 数据源名称
+    DATA_SOURCE_NAME: 'data.xlsx',
+
+    // 是否使用固定数据源（true: 使用固定路径，false: 允许用户上传）
+    USE_FIXED_DATA_SOURCE: true,
+
+    // 默认展示时间范围（年）
+    DEFAULT_YEARS: 1,
+
+    // 最大时间范围（年）
+    MAX_YEARS: 2
+};
+
+// 导出配置
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CONFIG;
+} else {
+    window.CONFIG = CONFIG;
+}

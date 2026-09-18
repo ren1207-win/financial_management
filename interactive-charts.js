@@ -18,22 +18,45 @@ class DataLoader {
         date: 21             // V 时间列
     };
 
-    // 读取 Excel 文件
+    // 读取 Excel 文件（支持 File 对象和 ArrayBuffer）
     static async loadFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
+        if (file instanceof File) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        resolve(workbook);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        } else if (file instanceof ArrayBuffer) {
+            return new Promise((resolve, reject) => {
                 try {
-                    const data = new Uint8Array(e.target.result);
+                    const data = new Uint8Array(file);
                     const workbook = XLSX.read(data, { type: 'array' });
                     resolve(workbook);
                 } catch (err) {
                     reject(err);
                 }
-            };
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(file);
-        });
+            });
+        } else if (file instanceof Uint8Array) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const workbook = XLSX.read(file, { type: 'array' });
+                    resolve(workbook);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        } else {
+            return Promise.reject(new Error('不受支持的文件类型'));
+        }
     }
 
     // 解析工作簿为记录数组
@@ -609,15 +632,6 @@ class FinancialChartHandler {
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => window.financialDashboard.handleRefresh());
         }
-
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    window.financialDashboard.handleFileSelect(e.target.files[0]);
-                }
-            });
-        }
     }
 
     setupTimeFilter() {
@@ -709,17 +723,18 @@ class FinancialDashboard {
 
     async handleFileSelect(file) {
         try {
-            this.updateDataSourceInfo(`正在读取 ${file.name}...`);
+            let fileName = CONFIG.DATA_SOURCE_NAME;
+            if (file instanceof File) {
+                fileName = file.name;
+            }
+
+            this.updateDataSourceInfo(`正在读取 ${fileName}...`);
             const workbook = await DataLoader.loadFile(file);
             const records = DataLoader.parseWorkbook(workbook);
             if (records.length === 0) {
                 alert('未解析到有效数据，请检查 Excel 列是否与文档约定一致。');
                 return;
             }
-
-            // 允许再次选择同一文件
-            const fileInput = document.getElementById('fileInput');
-            if (fileInput) fileInput.value = '';
 
             this.data = DataLoader.calculateDerivedIndicators(records);
 
@@ -757,7 +772,7 @@ class FinancialDashboard {
 
             // 更新数据源信息
             const latest = displayData[displayData.length - 1];
-            this.updateDataSourceInfo(`数据源：${file.name} · 最新数据 ${latest.dateStr}`);
+            this.updateDataSourceInfo(`数据源：${fileName} · 最新数据 ${latest.dateStr}`);
 
         } catch (err) {
             console.error(err);
@@ -766,11 +781,27 @@ class FinancialDashboard {
     }
 
     handleRefresh() {
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput && fileInput.files && fileInput.files[0]) {
-            this.handleFileSelect(fileInput.files[0]);
-        } else {
-            alert('请先选择 Excel 文件');
+        this.loadFixedDataSource();
+    }
+
+    // 加载固定数据源
+    async loadFixedDataSource() {
+        try {
+            this.updateDataSourceInfo(`正在读取 ${CONFIG.DATA_SOURCE_NAME}...`);
+
+            // 使用 fetch 获取固定路径的 Excel 文件
+            const response = await fetch(CONFIG.DATA_SOURCE_PATH);
+            if (!response.ok) {
+                throw new Error(`无法读取文件：${CONFIG.DATA_SOURCE_PATH}，状态码：${response.status}`);
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            await this.handleFileSelect(arrayBuffer);
+
+        } catch (err) {
+            console.error(err);
+            alert('读取固定数据源失败：' + err.message);
+            this.updateDataSourceInfo('数据源：读取失败');
         }
     }
 
@@ -789,6 +820,11 @@ class FinancialDashboard {
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     window.financialDashboard = new FinancialDashboard();
+
+    // 如果使用固定数据源，则自动加载
+    if (typeof CONFIG !== 'undefined' && CONFIG && CONFIG.USE_FIXED_DATA_SOURCE) {
+        await window.financialDashboard.loadFixedDataSource();
+    }
 });

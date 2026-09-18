@@ -58,46 +58,7 @@
         .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
         .chart { width: 100%; height: 200px; position: relative; overflow: hidden; border-radius: 8px; }
         .chart.tall { height: 220px; }
-        .chart svg { width: 100%; height: 100%; display: block; cursor: grab; }
-        .chart svg:hover { cursor: grab; }
-        .chart svg:active { cursor: grabbing; }
-        .gridline { stroke: var(--grid-line); stroke-width: 1; }
-        .axis-line { stroke: var(--axis-line); stroke-width: 1; }
-        .ln { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-        .tick { font-size: 10px; fill: var(--ink-secondary); }
-        .highlight { filter: drop-shadow(0 0 2px currentColor); }
-        .chart-tooltip {
-            position: absolute;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 1000;
-            display: none;
-        }
-        .x-axis-labels {
-            position: absolute;
-            bottom: 4px;
-            height: 16px;
-            pointer-events: none;
-            z-index: 10;
-        }
-        .x-axis-labels span {
-            position: absolute;
-            transform: translateX(-50%);
-            font-size: 10px;
-            color: var(--ink-secondary);
-            white-space: nowrap;
-        }
-        .file-input { display: none; }
-        .file-label {
-            display: inline-flex; align-items: center; gap: 6px;
-            border: 1px solid var(--ring); background: var(--card-bg);
-            padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer;
-        }
-        .file-label:hover { background: var(--grid-line); }
+        .chart canvas { width: 100%; height: 100%; display: block; }
         .data-table-section {
             margin-top: 24px;
             background: var(--card-bg); border: 1px solid var(--ring);
@@ -132,11 +93,9 @@
     <div class="header">
         <div>
             <h1>财务数据看板</h1>
-            <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls" />
-            <div class="sub" id="dataSourceInfo">数据源：请选择资产配置 Excel 文件 · 更新于 —</div>
+            <div class="sub" id="dataSourceInfo">数据源：加载中...</div>
         </div>
         <div style="display:flex;gap:8px;">
-            <label for="fileInput" class="file-label">📁 选择文件</label>
             <button class="refresh-btn" id="refreshBtn">↻ 刷新数据</button>
         </div>
     </div>
@@ -160,30 +119,7 @@
                 <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>净资产</div>
             </div>
             <div class="chart tall">
-                <svg viewBox="0 0 600 220" preserveAspectRatio="none">
-                    <defs>
-                        <filter id="highlight" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
-                            <feMerge>
-                                <feMergeNode in="blur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-                    <line class="gridline" x1="40" y1="30" x2="600" y2="30"/>
-                    <line class="gridline" x1="40" y1="80" x2="600" y2="80"/>
-                    <line class="gridline" x1="40" y1="130" x2="600" y2="130"/>
-                    <line class="gridline" x1="40" y1="180" x2="600" y2="180"/>
-                    <line class="axis-line" x1="40" y1="220" x2="600" y2="220"/>
-                    <path class="ln" style="stroke:var(--s1)" d="M40,60 C100,56 140,52 200,58 C260,64 300,58 360,66 C420,74 470,70 520,80 C560,88 580,84 600,90"/>
-                    <path class="ln" style="stroke:var(--s2)" d="M40,150 C100,152 140,148 200,154 C260,158 300,152 360,156 C420,150 470,154 520,150 C560,148 580,152 600,148"/>
-                    <path class="ln" style="stroke:var(--s3)" d="M40,85 C100,82 140,78 200,84 C260,90 300,84 360,92 C420,98 470,94 520,102 C560,108 580,104 600,112"/>
-                    <text class="tick" x="40" y="212">2025/9</text>
-                    <text class="tick" x="200" y="212">2025/12</text>
-                    <text class="tick" x="360" y="212">2026/3</text>
-                    <text class="tick" x="520" y="212">2026/6</text>
-                    <text class="tick" x="590" y="212">2026/9</text>
-                </svg>
+                <!-- 图表将通过Chart.js动态渲染 -->
             </div>
         </div>
 
@@ -198,17 +134,7 @@
                 <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>流动资金</div>
             </div>
             <div class="chart">
-                <svg viewBox="0 0 300 200" preserveAspectRatio="none">
-                    <line class="gridline" x1="35" y1="40" x2="300" y2="40"/>
-                    <line class="gridline" x1="35" y1="100" x2="300" y2="100"/>
-                    <line class="gridline" x1="35" y1="160" x2="300" y2="160"/>
-                    <line class="axis-line" x1="35" y1="200" x2="300" y2="200"/>
-                    <path class="ln" style="stroke:var(--s1)" d="M35,70 C80,66 120,72 160,68 C200,64 240,70 300,62"/>
-                    <path class="ln" style="stroke:var(--s6)" d="M35,120 C80,116 120,122 160,118 C200,114 240,120 300,112"/>
-                    <path class="ln" style="stroke:var(--s3)" d="M35,80 C80,76 120,82 160,78 C200,74 240,80 300,72"/>
-                    <text class="tick" x="35" y="192">2025/9</text>
-                    <text class="tick" x="290" y="192">2026/9</text>
-                </svg>
+                <!-- 图表将通过Chart.js动态渲染 -->
             </div>
         </div>
 
@@ -224,18 +150,7 @@
                 <div class="legend-item"><span class="line-key" style="background:var(--s5)"></span>股票</div>
             </div>
             <div class="chart">
-                <svg viewBox="0 0 300 200" preserveAspectRatio="none">
-                    <line class="gridline" x1="35" y1="40" x2="300" y2="40"/>
-                    <line class="gridline" x1="35" y1="100" x2="300" y2="100"/>
-                    <line class="gridline" x1="35" y1="160" x2="300" y2="160"/>
-                    <line class="axis-line" x1="35" y1="200" x2="300" y2="200"/>
-                    <path class="ln" style="stroke:var(--s7)" d="M35,80 C80,76 120,82 160,78 C200,74 240,80 300,72"/>
-                    <path class="ln" style="stroke:var(--s3)" d="M35,65 C80,62 120,60 160,64 C200,68 240,62 300,70"/>
-                    <path class="ln" style="stroke:var(--s4)" d="M35,130 C80,126 120,132 160,128 C200,124 240,130 300,122"/>
-                    <path class="ln" style="stroke:var(--s5)" d="M35,110 C80,114 120,108 160,112 C200,116 240,110 300,118"/>
-                    <text class="tick" x="35" y="192">2025/9</text>
-                    <text class="tick" x="290" y="192">2026/9</text>
-                </svg>
+                <!-- 图表将通过Chart.js动态渲染 -->
             </div>
         </div>
 
@@ -245,15 +160,7 @@
             <div class="card-sub">公积金账户数值</div>
             <div class="net-badge"><div class="label">总额</div><div class="value">¥ 12.8万</div></div>
             <div class="chart">
-                <svg viewBox="0 0 300 200" preserveAspectRatio="none">
-                    <line class="gridline" x1="35" y1="40" x2="300" y2="40"/>
-                    <line class="gridline" x1="35" y1="100" x2="300" y2="100"/>
-                    <line class="gridline" x1="35" y1="160" x2="300" y2="160"/>
-                    <line class="axis-line" x1="35" y1="200" x2="300" y2="200"/>
-                    <path class="ln" style="stroke:var(--s8, var(--s4))" d="M35,150 C80,144 120,138 160,132 C200,126 240,118 300,104"/>
-                    <text class="tick" x="35" y="192">2025/9</text>
-                    <text class="tick" x="290" y="192">2026/9</text>
-                </svg>
+                <!-- 图表将通过Chart.js动态渲染 -->
             </div>
         </div>
 
@@ -262,12 +169,7 @@
             <div class="card-title">总资产构成占比</div>
             <div class="card-sub">流动资金 · 固定资本 · 投资</div>
             <div class="chart" style="height:170px">
-                <svg viewBox="0 0 300 170" preserveAspectRatio="none">
-                    <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s1)" stroke-width="24" stroke-dasharray="120 250" transform="rotate(-90 130 85)"/>
-                    <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s2)" stroke-width="24" stroke-dasharray="50 250" transform="rotate(-90 130 85)" stroke-dashoffset="-120"/>
-                    <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s3)" stroke-width="24" stroke-dasharray="80 250" transform="rotate(-90 130 85)" stroke-dashoffset="-170"/>
-                    <text class="tick" x="130" y="80" text-anchor="middle" fill="var(--ink-primary)">总资产</text>
-                </svg>
+                <!-- 图表将通过Chart.js动态渲染 -->
             </div>
             <div class="legend" style="justify-content:center">
                 <div class="legend-item"><span class="dot" style="background:var(--s1)"></span>流动资金 48%</div>
@@ -281,12 +183,7 @@
             <div class="card-title">投资资金构成占比</div>
             <div class="card-sub">储备金 · 风险仓位 · 稳健仓位</div>
             <div class="chart" style="height:170px">
-                <svg viewBox="0 0 300 170" preserveAspectRatio="none">
-                    <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s6)" stroke-width="24" stroke-dasharray="70 250" transform="rotate(-90 130 85)"/>
-                    <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s4)" stroke-width="24" stroke-dasharray="90 250" transform="rotate(-90 130 85)" stroke-dashoffset="-70"/>
-                    <circle cx="130" cy="85" r="52" fill="none" stroke="var(--s3)" stroke-width="24" stroke-dasharray="90 250" transform="rotate(-90 130 85)" stroke-dashoffset="-160"/>
-                    <text class="tick" x="130" y="80" text-anchor="middle" fill="var(--ink-primary)">投资资金</text>
-                </svg>
+                <!-- 图表将通过Chart.js动态渲染 -->
             </div>
             <div class="legend" style="justify-content:center">
                 <div class="legend-item"><span class="dot" style="background:var(--s6)"></span>储备金 28%</div>
@@ -318,6 +215,7 @@
 
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="config.js"></script>
     <script src="interactive-charts.js"></script>
 </body>
 </html>
