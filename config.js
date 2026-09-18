@@ -13,7 +13,7 @@ const CONFIG = {
     DEFAULT_YEARS: 1,
 
     // 最大时间范围（年）
-    MAX_YEARS: 2
+    MAX_YEARS: 5
 };
 
 // 导出配置

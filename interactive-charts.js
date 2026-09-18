@@ -688,36 +688,52 @@ class FinancialChartHandler {
         e.target.classList.add('active');
 
         const text = e.target.textContent.trim();
-        const { totalYears } = FinancialChartHandler;
-        let targetYears = totalYears;
+        let targetYears = null;
         switch (text) {
             case '最近1年': targetYears = 1; break;
             case '最近3年': targetYears = 3; break;
             case '最近5年': targetYears = 5; break;
-            case '全部': targetYears = totalYears; break;
+            case '全部': targetYears = null; break;
         }
 
-        // 重新渲染图表
-        window.financialDashboard.renderChartsWithTimeRange(targetYears);
+        // 重新渲染图表（null 表示全部）
+        this.renderChartsWithTimeRange(targetYears, text);
 
         console.log('时间范围切换到: ' + text);
     }
 
-    // 新增方法：根据时间范围重新渲染图表
-    renderChartsWithTimeRange(targetYears) {
-        if (window.financialDashboard && window.financialDashboard.data) {
-            // 获取当前数据并调整显示范围
-            const data = window.financialDashboard.data;
-            const startIndex = Math.max(0, data.length - Math.floor(targetYears * 12)); // 假设每月一个数据点
-            const filteredData = data.slice(startIndex);
+    // 根据时间范围重新渲染图表
+    renderChartsWithTimeRange(targetYears, label) {
+        if (!window.financialDashboard || !window.financialDashboard.data) return;
 
-            // 更新图表显示（这里只是重新初始化图表，实际可用性需要根据需要完善）
-            if (filteredData.length > 0) {
-                const renderer = new ChartRenderer(filteredData);
-                renderer.renderAll();
-                // 重新初始化交互部分
-                window.financialDashboard.chartHandler.setupTimeFilter();
+        const data = window.financialDashboard.data;
+        let filteredData = data;
+
+        if (targetYears) {
+            const latestDate = data[data.length - 1].date;
+            const cutoff = new Date(latestDate);
+            cutoff.setFullYear(cutoff.getFullYear() - targetYears);
+
+            let startIndex = 0;
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].date >= cutoff) {
+                    startIndex = i;
+                    break;
+                }
             }
+            filteredData = data.slice(startIndex);
+        }
+
+        if (filteredData.length > 0) {
+            const renderer = new ChartRenderer(filteredData);
+            renderer.renderAll();
+            DataTable.render(filteredData);
+
+            const latest = filteredData[filteredData.length - 1];
+            const displayLabel = label || '全部';
+            window.financialDashboard.updateDataSourceInfo(
+                `数据源：${CONFIG.DATA_SOURCE_NAME} · ${displayLabel} · 最新 ${latest.dateStr}`
+            );
         }
     }
 
