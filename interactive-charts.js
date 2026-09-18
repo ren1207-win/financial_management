@@ -163,6 +163,28 @@ class ChartRenderer {
         this.charts = new Map(); // 存储所有Chart.js实例
     }
 
+    // 获取 CSS 变量对应的真实颜色值
+    static getCssColor(variableName) {
+        try {
+            const root = document.documentElement;
+            const value = getComputedStyle(root).getPropertyValue(variableName).trim();
+            if (value) return value;
+        } catch (err) {
+            console.warn('读取 CSS 变量失败:', variableName, err);
+        }
+        // 回退颜色表
+        const fallback = {
+            '--s1': '#2a78d6',
+            '--s2': '#e34948',
+            '--s3': '#1baf7a',
+            '--s4': '#eb6834',
+            '--s5': '#e87ba4',
+            '--s6': '#eda100',
+            '--s7': '#008300'
+        };
+        return fallback[variableName] || '#000000';
+    }
+
     // 渲染所有图表
     renderAll() {
         if (!this.data || this.data.length === 0) return;
@@ -442,7 +464,7 @@ class ChartRenderer {
             {
                 label: '总资产',
                 data: this.data.map(d => d.totalAssets),
-                borderColor: 'var(--s1)',
+                borderColor: ChartRenderer.getCssColor('--s1'),
                 backgroundColor: 'rgba(42, 120, 214, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -453,7 +475,7 @@ class ChartRenderer {
             {
                 label: '负债',
                 data: this.data.map(d => d.debt),
-                borderColor: 'var(--s2)',
+                borderColor: ChartRenderer.getCssColor('--s2'),
                 backgroundColor: 'rgba(227, 73, 72, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -464,7 +486,7 @@ class ChartRenderer {
             {
                 label: '净资产',
                 data: this.data.map(d => d.netAssets),
-                borderColor: 'var(--s3)',
+                borderColor: ChartRenderer.getCssColor('--s3'),
                 backgroundColor: 'rgba(27, 175, 122, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -484,7 +506,7 @@ class ChartRenderer {
             {
                 label: '活期',
                 data: this.data.map(d => d.currentDeposit),
-                borderColor: 'var(--s1)',
+                borderColor: ChartRenderer.getCssColor('--s1'),
                 backgroundColor: 'rgba(42, 120, 214, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -495,7 +517,7 @@ class ChartRenderer {
             {
                 label: '应急资金',
                 data: this.data.map(d => d.emergencyFund),
-                borderColor: 'var(--s6)',
+                borderColor: ChartRenderer.getCssColor('--s6'),
                 backgroundColor: 'rgba(237, 161, 0, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -506,7 +528,7 @@ class ChartRenderer {
             {
                 label: '流动资金',
                 data: this.data.map(d => d.liquidAssets),
-                borderColor: 'var(--s3)',
+                borderColor: ChartRenderer.getCssColor('--s3'),
                 backgroundColor: 'rgba(27, 175, 122, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -526,7 +548,7 @@ class ChartRenderer {
             {
                 label: '储备金',
                 data: this.data.map(d => d.reserveFund),
-                borderColor: 'var(--s7)',
+                borderColor: ChartRenderer.getCssColor('--s7'),
                 backgroundColor: 'rgba(0, 131, 0, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -537,7 +559,7 @@ class ChartRenderer {
             {
                 label: '稳健基金',
                 data: this.data.map(d => d.stableFund),
-                borderColor: 'var(--s3)',
+                borderColor: ChartRenderer.getCssColor('--s3'),
                 backgroundColor: 'rgba(27, 175, 122, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -548,7 +570,7 @@ class ChartRenderer {
             {
                 label: '风险基金',
                 data: this.data.map(d => d.riskFund),
-                borderColor: 'var(--s4)',
+                borderColor: ChartRenderer.getCssColor('--s4'),
                 backgroundColor: 'rgba(235, 104, 52, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -559,7 +581,7 @@ class ChartRenderer {
             {
                 label: '股票',
                 data: this.data.map(d => d.stock),
-                borderColor: 'var(--s5)',
+                borderColor: ChartRenderer.getCssColor('--s5'),
                 backgroundColor: 'rgba(232, 123, 164, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -579,7 +601,7 @@ class ChartRenderer {
             {
                 label: '公积金',
                 data: this.data.map(d => d.providentFund),
-                borderColor: 'var(--s4)',
+                borderColor: ChartRenderer.getCssColor('--s4'),
                 backgroundColor: 'rgba(235, 104, 52, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
@@ -596,7 +618,7 @@ class ChartRenderer {
         const container = document.querySelector('.card:nth-child(5) .chart');
         const labels = ['流动资金', '固定资本', '投资'];
         const data = [latest.liquidAssets, latest.fixedAssets, latest.investment];
-        const backgroundColors = ['var(--s1)', 'var(--s2)', 'var(--s3)'];
+        const backgroundColors = [ChartRenderer.getCssColor('--s1'), ChartRenderer.getCssColor('--s2'), ChartRenderer.getCssColor('--s3')];
 
         this.renderPieChart(container, '总资产构成占比', labels, data, backgroundColors);
     }
@@ -605,7 +627,7 @@ class ChartRenderer {
         const container = document.querySelector('.card:nth-child(6) .chart');
         const labels = ['储备金', '风险仓位', '稳健仓位'];
         const data = [latest.reserveFund, latest.riskPosition, latest.stableFund];
-        const backgroundColors = ['var(--s6)', 'var(--s4)', 'var(--s3)'];
+        const backgroundColors = [ChartRenderer.getCssColor('--s6'), ChartRenderer.getCssColor('--s4'), ChartRenderer.getCssColor('--s3')];
 
         this.renderPieChart(container, '投资资金构成占比', labels, data, backgroundColors);
     }
