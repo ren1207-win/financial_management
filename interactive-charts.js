@@ -747,6 +747,7 @@ class FinancialChartHandler {
         const rateInput = document.getElementById('compoundRate');
         const btn = document.getElementById('compoundCalcBtn');
         const resultEl = document.getElementById('compoundResult');
+        const chartContainer = document.querySelector('.compound-chart');
         if (!amountInput || !rateInput || !btn || !resultEl) return;
 
         const formatWan = (value) => {
@@ -759,6 +760,77 @@ class FinancialChartHandler {
             const r = ratePercent / 100;
             if (r === 0) return amount * years;
             return amount * (Math.pow(1 + r, years) - 1) / r;
+        };
+
+        let compoundChart = null;
+
+        const renderChart = (amount, rate) => {
+            if (!chartContainer || typeof Chart === 'undefined') return;
+            if (compoundChart) {
+                compoundChart.destroy();
+            }
+
+            const labels = Array.from({ length: 20 }, (_, i) => i + 1);
+            const data = labels.map(year => calculateFV(amount, rate, year));
+
+            const ctx = document.createElement('canvas');
+            ctx.width = chartContainer.offsetWidth;
+            ctx.height = chartContainer.offsetHeight;
+            chartContainer.innerHTML = '';
+            chartContainer.appendChild(ctx);
+
+            compoundChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '复利金额',
+                        data: data,
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.08)',
+                        borderWidth: 1,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        order: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: false },
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: { display: false }
+                        },
+                        y: {
+                            display: true,
+                            position: 'right',
+                            title: { display: false },
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 10000) {
+                                        return (value / 10000).toFixed(1) + 'w';
+                                    }
+                                    return value;
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: { borderWidth: 1 },
+                        point: { display: false }
+                    }
+                }
+            });
         };
 
         const renderResult = () => {
@@ -783,6 +855,8 @@ class FinancialChartHandler {
                     <span style="color:var(--ink-secondary)">（本金 ${formatWan(principal20)}，收益 ${formatWan(fv20 - principal20)}）</span>
                 </div>
             `;
+
+            renderChart(amount, rate);
         };
 
         btn.addEventListener('click', renderResult);
