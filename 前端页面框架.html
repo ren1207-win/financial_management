@@ -49,8 +49,8 @@
             grid-template-areas:
                 "c1 c1 c1 c2 c2 c2"
                 "c3 c3 c3 c4 c4 c4"
-                "p1 p1 p1 cp cp cp"
-                "p2 p2 p2 cp cp cp";
+                "p1 p1 cp cp ct ct"
+                "p2 p2 cp cp ct ct";
             gap: 18px;
             align-items: start;
         }
@@ -81,6 +81,22 @@
         .chart.compound-chart { flex: 1; height: auto; min-height: 120px; margin-top: 12px; }
         .card:has(.pie-chart) { min-height: auto; align-self: start; }
         .compound-card { grid-area: cp; min-height: auto; align-self: stretch; }
+        .tips-card { grid-area: ct; min-height: auto; align-self: stretch; overflow-y: auto; }
+        .tips-content { font-size: 12px; line-height: 1.6; color: var(--ink-secondary); }
+        .tips-section { margin-bottom: 12px; }
+        .tips-section:last-child { margin-bottom: 0; }
+        .tips-section h4 {
+            font-size: 12px; font-weight: 600; color: var(--ink-primary);
+            margin-bottom: 4px;
+        }
+        .tips-section p { margin: 0; }
+        .tips-goal {
+            background: var(--page-bg);
+            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid var(--ring);
+        }
+        .tips-goal strong { color: var(--s3); }
         .compound-examples {
             background: var(--page-bg);
             border-radius: 8px;
@@ -152,7 +168,7 @@
                 grid-template-columns: 1fr;
                 grid-template-areas: none;
             }
-            .card, .card:nth-child(n), .compound-card { grid-area: auto; align-self: start; min-height: auto; }
+            .card, .card:nth-child(n), .compound-card, .tips-card { grid-area: auto; align-self: start; min-height: auto; }
             .header { flex-direction: column; align-items: flex-start; gap: 12px; }
         }
     </style>
@@ -293,6 +309,38 @@
             <div class="compound-result" id="compoundResult"></div>
             <div class="chart compound-chart">
                 <!-- 复利走势图表 -->
+            </div>
+        </div>
+
+        <!-- 卡片8：理财小贴士 -->
+        <div class="card tips-card">
+            <div class="card-title">理财小贴士</div>
+            <div class="card-sub">关于财务管理、投资策略的思考</div>
+            <div class="tips-content">
+                <div class="tips-section tips-goal">
+                    <h4>财务目标：240 万</h4>
+                    <p>当本金达到 <strong>240 万</strong> 时，按 <strong>3%</strong> 的年化收益计算，每年可产生 <strong>7.2 万</strong> 收益，相当于每月约 <strong>6,000 元</strong> 的被动收入。</p>
+                </div>
+                <div class="tips-section">
+                    <h4>1. 先储蓄，后消费</h4>
+                    <p>工资到账后先把固定比例转入投资账户，剩下来的再用于日常开销，这样既能保证本金积累，也能避免无意识地超支。</p>
+                </div>
+                <div class="tips-section">
+                    <h4>2. 分散投资，降低波动</h4>
+                    <p>不要把所有资金押注在单一资产上。通过“储备金 + 稳健基金 + 风险基金 + 股票”的组合，可以在控制回撤的同时争取长期收益。</p>
+                </div>
+                <div class="tips-section">
+                    <h4>3. 复利是最大的杠杆</h4>
+                    <p>时间越长，复利效果越明显。20 年坚持下来，收益部分往往会超过你投入的本金，耐心是普通人最好的武器。</p>
+                </div>
+                <div class="tips-section">
+                    <h4>4. 定期复盘，动态调整</h4>
+                    <p>每季度或半年检查一次资产配置比例。随着年龄增长，可以逐步降低高风险仓位，提高稳健资产和流动资金的占比。</p>
+                </div>
+                <div class="tips-section">
+                    <h4>5. 留出应急资金</h4>
+                    <p>建议预留 3~6 个月生活费的流动资金，优先放在活期或货币基金里。这部分钱不求高收益，关键是随时能取用。</p>
+                </div>
             </div>
         </div>
     </div>
