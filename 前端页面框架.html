@@ -46,6 +46,9 @@
         .card {
             background: var(--card-bg); border: 1px solid var(--ring);
             border-radius: 14px; padding: 18px 18px 12px; position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 360px;
         }
         .card-title { font-size: 14px; font-weight: 600; color: var(--ink-secondary); margin-bottom: 4px; }
         .card-sub { font-size: 11px; color: var(--ink-secondary); margin-bottom: 10px; }
@@ -56,8 +59,8 @@
         .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-secondary); }
         .line-key { width: 18px; height: 3px; border-radius: 2px; flex: none; }
         .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-        .chart { width: 100%; height: 200px; position: relative; overflow: hidden; border-radius: 8px; }
-        .chart.tall { height: 220px; }
+        .chart { width: 100%; height: 250px; position: relative; overflow: hidden; border-radius: 8px; margin-top: auto; }
+        .chart.pie-chart { height: 170px; }
         .chart canvas { width: 100%; height: 100%; display: block; }
         .data-table-section {
             margin-top: 24px;
@@ -118,7 +121,7 @@
                 <div class="legend-item"><span class="line-key" style="background:var(--s2)"></span>负债</div>
                 <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>净资产</div>
             </div>
-            <div class="chart tall">
+            <div class="chart">
                 <!-- 图表将通过Chart.js动态渲染 -->
             </div>
         </div>
@@ -168,7 +171,7 @@
         <div class="card">
             <div class="card-title">总资产构成占比</div>
             <div class="card-sub">流动资金 · 固定资本 · 投资</div>
-            <div class="chart" style="height:170px">
+            <div class="chart pie-chart">
                 <!-- 图表将通过Chart.js动态渲染 -->
             </div>
             <div class="legend" style="justify-content:center">
@@ -182,7 +185,7 @@
         <div class="card">
             <div class="card-title">投资资金构成占比</div>
             <div class="card-sub">储备金 · 风险仓位 · 稳健仓位</div>
-            <div class="chart" style="height:170px">
+            <div class="chart pie-chart">
                 <!-- 图表将通过Chart.js动态渲染 -->
             </div>
             <div class="legend" style="justify-content:center">
