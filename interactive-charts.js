@@ -743,6 +743,7 @@ class FinancialChartHandler {
     }
 
     setupCompoundCalculator() {
+        const startAmountInput = document.getElementById('compoundStartAmount');
         const amountInput = document.getElementById('compoundAmount');
         const rateInput = document.getElementById('compoundRate');
         const btn = document.getElementById('compoundCalcBtn');
@@ -750,28 +751,38 @@ class FinancialChartHandler {
         const chartContainer = document.querySelector('.compound-chart');
         if (!amountInput || !rateInput || !btn || !resultEl) return;
 
+        // Set the default value of startAmount to latest total assets if we have data
+        if (window.financialDashboard && window.financialDashboard.data.length > 0) {
+            const latest = window.financialDashboard.data[window.financialDashboard.data.length - 1];
+            startAmountInput.value = (latest.totalAssets / 10000).toFixed(1);
+        }
+
         const formatWan = (value) => {
             const wan = value / 10000;
             if (Math.abs(wan) >= 1) return `¥${wan.toFixed(1)}万`;
             return `¥${value.toFixed(0)}`;
         };
 
-        const calculateFV = (amount, ratePercent, years) => {
+        const calculateFV = (startAmount, amount, ratePercent, years) => {
             const r = ratePercent / 100;
-            if (r === 0) return amount * years;
-            return amount * (Math.pow(1 + r, years) - 1) / r;
+            // Future value of compound interest with initial amount + annual contributions
+            if (r === 0) {
+                return startAmount + amount * years;
+            }
+            const futureValue = startAmount * Math.pow(1 + r, years) + amount * (Math.pow(1 + r, years) - 1) / r;
+            return futureValue;
         };
 
         let compoundChart = null;
 
-        const renderChart = (amount, rate) => {
+        const renderChart = (startAmount, amount, rate) => {
             if (!chartContainer || typeof Chart === 'undefined') return;
             if (compoundChart) {
                 compoundChart.destroy();
             }
 
             const labels = Array.from({ length: 20 }, (_, i) => i + 1);
-            const data = labels.map(year => calculateFV(amount, rate, year));
+            const data = labels.map(year => calculateFV(startAmount, amount, rate, year));
 
             const ctx = document.createElement('canvas');
             ctx.width = chartContainer.offsetWidth;
@@ -834,6 +845,8 @@ class FinancialChartHandler {
         };
 
         const renderResult = () => {
+            const startAmountWan = parseFloat(startAmountInput.value) || 0;
+            const startAmount = startAmountWan * 10000;
             const amountWan = parseFloat(amountInput.value) || 0;
             const amount = amountWan * 10000;
             const rate = parseFloat(rateInput.value) || 0;
@@ -842,10 +855,10 @@ class FinancialChartHandler {
                 return;
             }
 
-            const fv10 = calculateFV(amount, rate, 10);
-            const fv20 = calculateFV(amount, rate, 20);
-            const principal10 = amount * 10;
-            const principal20 = amount * 20;
+            const fv10 = calculateFV(startAmount, amount, rate, 10);
+            const fv20 = calculateFV(startAmount, amount, rate, 20);
+            const principal10 = startAmount + amount * 10;
+            const principal20 = startAmount + amount * 20;
 
             resultEl.innerHTML = `
                 <div>10 年后：<span class="highlight">${formatWan(fv10)}</span>
@@ -856,11 +869,15 @@ class FinancialChartHandler {
                 </div>
             `;
 
-            renderChart(amount, rate);
+            renderChart(startAmount, amount, rate);
         };
 
+        // Add event listeners for all inputs
+        startAmountInput.addEventListener('input', renderResult);
+        amountInput.addEventListener('input', renderResult);
+        rateInput.addEventListener('input', renderResult);
         btn.addEventListener('click', renderResult);
-        // 默认计算一次
+        // Default calculation
         renderResult();
     }
 }
