@@ -15,7 +15,8 @@ class DataLoader {
         stock: 15,           // P 股票
         providentFund: 17,   // R 公积金
         debt: 19,            // T 负债
-        date: 21             // V 时间列
+        date: 21,            // V 时间列
+        totalInvestment: 28  // AC 总投资额
     };
 
     // 读取 Excel 文件（支持 File 对象和 ArrayBuffer）
@@ -95,7 +96,8 @@ class DataLoader {
                 riskFund: getValue('riskFund'),
                 stock: getValue('stock'),
                 providentFund: getValue('providentFund'),
-                debt: getValue('debt')
+                debt: getValue('debt'),
+                totalInvestment: getValue('totalInvestment')
             });
         });
 
@@ -545,6 +547,17 @@ class ChartRenderer {
         const container = document.querySelector('.card:nth-child(3) .chart');
         const labels = this.data.map(d => d.dateStr);
         const datasets = [
+            {
+                label: '总投资额',
+                data: this.data.map(d => d.totalInvestment),
+                borderColor: ChartRenderer.getCssColor('--s8'),
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
             {
                 label: '储备金',
                 data: this.data.map(d => d.reserveFund),
