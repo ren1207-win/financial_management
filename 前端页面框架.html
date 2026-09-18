@@ -13,14 +13,14 @@
             --grid-line: #e1e0d9;
             --axis-line: #c3c2b7;
             --ring: rgba(11,11,11,0.10);
-            --s1: #2a78d6;
-            --s2: #e34948;
-            --s3: #1baf7a;
-            --s4: #eb6834;
-            --s5: #e87ba4;
-            --s6: #eda100;
-            --s7: #008300;
-            --s8: #8b5cf6; // 总投资额
+            --s1: #dc2626; /* 大红：净资产 / 流动资金 / 总投资额 / 公积金 */
+            --s2: #2563eb; /* 蓝：总资产 / 活期 / 储备金 */
+            --s3: #16a34a; /* 绿：稳健基金 / 稳健仓位 / 投资 */
+            --s4: #f97316; /* 橙：风险基金 / 风险仓位 */
+            --s5: #9333ea; /* 紫：股票 */
+            --s6: #ca8a04; /* 琥珀：应急资金 */
+            --s7: #475569; /* 深灰：负债 */
+            --s8: #dc2626; /* 大红：总投资额 */
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -55,7 +55,7 @@
         .card-sub { font-size: 11px; color: var(--ink-secondary); margin-bottom: 10px; }
         .net-badge { position: absolute; top: 14px; right: 16px; text-align: right; }
         .net-badge .label { font-size: 11px; color: var(--ink-secondary); }
-        .net-badge .value { font-size: 20px; font-weight: 600; color: var(--s3); }
+        .net-badge .value { font-size: 20px; font-weight: 600; color: var(--s1); }
         .legend { display: flex; gap: 14px; margin: 10px 0 8px; flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-secondary); }
         .line-key { width: 18px; height: 3px; border-radius: 2px; flex: none; }
@@ -118,9 +118,9 @@
             <div class="card-sub">总资产与负债变化对比，净资产为衍生指标（总资产 − 负债）</div>
             <div class="net-badge"><div class="label">净资产</div><div class="value">¥ 92.5万</div></div>
             <div class="legend">
-                <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>总资产</div>
-                <div class="legend-item"><span class="line-key" style="background:var(--s2)"></span>负债</div>
-                <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>净资产</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s2)"></span>总资产</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s7)"></span>负债</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>净资产</div>
             </div>
             <div class="chart">
                 <!-- 图表将通过Chart.js动态渲染 -->
@@ -133,9 +133,9 @@
             <div class="card-sub">活期 + 应急资金</div>
             <div class="net-badge"><div class="label">总额</div><div class="value">¥ 13.2万</div></div>
             <div class="legend">
-                <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>活期</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s2)"></span>活期</div>
                 <div class="legend-item"><span class="line-key" style="background:var(--s6)"></span>应急资金</div>
-                <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>流动资金</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s1)"></span>流动资金</div>
             </div>
             <div class="chart">
                 <!-- 图表将通过Chart.js动态渲染 -->
@@ -148,11 +148,11 @@
             <div class="card-sub">投资储备金 + 稳健性基金 + 风险性基金 + 股票</div>
             <div class="net-badge"><div class="label">总额</div><div class="value">¥ 58.7万</div></div>
             <div class="legend">
-                <div class="legend-item"><span class="line-key" style="background:var(--s7)"></span>储备金</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s8)"></span>总投资额</div>
+                <div class="legend-item"><span class="line-key" style="background:var(--s2)"></span>储备金</div>
                 <div class="legend-item"><span class="line-key" style="background:var(--s3)"></span>稳健基金</div>
                 <div class="legend-item"><span class="line-key" style="background:var(--s4)"></span>风险基金</div>
                 <div class="legend-item"><span class="line-key" style="background:var(--s5)"></span>股票</div>
-                <div class="legend-item"><span class="line-key" style="background:var(--s8)"></span>总投资额</div>
             </div>
             <div class="chart">
                 <!-- 图表将通过Chart.js动态渲染 -->
@@ -191,7 +191,7 @@
                 <!-- 图表将通过Chart.js动态渲染 -->
             </div>
             <div class="legend" style="justify-content:center">
-                <div class="legend-item"><span class="dot" style="background:var(--s6)"></span>储备金 28%</div>
+                <div class="legend-item"><span class="dot" style="background:var(--s2)"></span>储备金 28%</div>
                 <div class="legend-item"><span class="dot" style="background:var(--s4)"></span>风险仓位 36%</div>
                 <div class="legend-item"><span class="dot" style="background:var(--s3)"></span>稳健仓位 36%</div>
             </div>

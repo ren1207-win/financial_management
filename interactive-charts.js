@@ -176,13 +176,14 @@ class ChartRenderer {
         }
         // 回退颜色表
         const fallback = {
-            '--s1': '#2a78d6',
-            '--s2': '#e34948',
-            '--s3': '#1baf7a',
-            '--s4': '#eb6834',
-            '--s5': '#e87ba4',
-            '--s6': '#eda100',
-            '--s7': '#008300'
+            '--s1': '#dc2626',
+            '--s2': '#2563eb',
+            '--s3': '#16a34a',
+            '--s4': '#f97316',
+            '--s5': '#9333ea',
+            '--s6': '#ca8a04',
+            '--s7': '#475569',
+            '--s8': '#dc2626'
         };
         return fallback[variableName] || '#000000';
     }
@@ -231,7 +232,7 @@ class ChartRenderer {
 
         // 卡片6 饼图图例
         this.updatePieLegend('.card:nth-child(6)', [
-            { color: 'var(--s6)', label: '储备金', value: latest.reserveFund, total: latest.investment },
+            { color: 'var(--s2)', label: '储备金', value: latest.reserveFund, total: latest.investment },
             { color: 'var(--s4)', label: '风险仓位', value: latest.riskPosition, total: latest.investment },
             { color: 'var(--s3)', label: '稳健仓位', value: latest.stableFund, total: latest.investment }
         ]);
@@ -325,6 +326,7 @@ class ChartRenderer {
                         },
                         y: {
                             display: true,
+                            position: 'right',
                             title: {
                                 display: false
                                 // 隐藏标题文字，只显示数字
@@ -343,7 +345,7 @@ class ChartRenderer {
                     elements: {
                         line: {
                             tension: 0.4, // 平滑曲线
-                            borderWidth: 2
+                            borderWidth: 1
                         },
                         point: {
                             display: false // 不在节点处显示图形
@@ -466,9 +468,9 @@ class ChartRenderer {
             {
                 label: '总资产',
                 data: this.data.map(d => d.totalAssets),
-                borderColor: ChartRenderer.getCssColor('--s1'),
-                backgroundColor: 'rgba(42, 120, 214, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s2'),
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -477,9 +479,9 @@ class ChartRenderer {
             {
                 label: '负债',
                 data: this.data.map(d => d.debt),
-                borderColor: ChartRenderer.getCssColor('--s2'),
-                backgroundColor: 'rgba(227, 73, 72, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s7'),
+                backgroundColor: 'rgba(71, 85, 105, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -488,9 +490,10 @@ class ChartRenderer {
             {
                 label: '净资产',
                 data: this.data.map(d => d.netAssets),
-                borderColor: ChartRenderer.getCssColor('--s3'),
-                backgroundColor: 'rgba(27, 175, 122, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s1'),
+                backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                borderWidth: 1,
+                order: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -508,9 +511,9 @@ class ChartRenderer {
             {
                 label: '活期',
                 data: this.data.map(d => d.currentDeposit),
-                borderColor: ChartRenderer.getCssColor('--s1'),
-                backgroundColor: 'rgba(42, 120, 214, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s2'),
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -520,8 +523,8 @@ class ChartRenderer {
                 label: '应急资金',
                 data: this.data.map(d => d.emergencyFund),
                 borderColor: ChartRenderer.getCssColor('--s6'),
-                backgroundColor: 'rgba(237, 161, 0, 0.2)',
-                borderWidth: 2,
+                backgroundColor: 'rgba(202, 138, 4, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -530,9 +533,10 @@ class ChartRenderer {
             {
                 label: '流动资金',
                 data: this.data.map(d => d.liquidAssets),
-                borderColor: ChartRenderer.getCssColor('--s3'),
-                backgroundColor: 'rgba(27, 175, 122, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s1'),
+                backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                borderWidth: 1,
+                order: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -548,22 +552,11 @@ class ChartRenderer {
         const labels = this.data.map(d => d.dateStr);
         const datasets = [
             {
-                label: '总投资额',
-                data: this.data.map(d => d.totalInvestment),
-                borderColor: ChartRenderer.getCssColor('--s8'),
-                backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointStyle: 'circle',
-                pointRadius: 0,
-                pointHoverRadius: 0
-            },
-            {
                 label: '储备金',
                 data: this.data.map(d => d.reserveFund),
-                borderColor: ChartRenderer.getCssColor('--s7'),
-                backgroundColor: 'rgba(0, 131, 0, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s2'),
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -573,8 +566,8 @@ class ChartRenderer {
                 label: '稳健基金',
                 data: this.data.map(d => d.stableFund),
                 borderColor: ChartRenderer.getCssColor('--s3'),
-                backgroundColor: 'rgba(27, 175, 122, 0.2)',
-                borderWidth: 2,
+                backgroundColor: 'rgba(22, 163, 74, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -584,8 +577,8 @@ class ChartRenderer {
                 label: '风险基金',
                 data: this.data.map(d => d.riskFund),
                 borderColor: ChartRenderer.getCssColor('--s4'),
-                backgroundColor: 'rgba(235, 104, 52, 0.2)',
-                borderWidth: 2,
+                backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                borderWidth: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -595,8 +588,20 @@ class ChartRenderer {
                 label: '股票',
                 data: this.data.map(d => d.stock),
                 borderColor: ChartRenderer.getCssColor('--s5'),
-                backgroundColor: 'rgba(232, 123, 164, 0.2)',
-                borderWidth: 2,
+                backgroundColor: 'rgba(147, 51, 234, 0.2)',
+                borderWidth: 1,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '总投资额',
+                data: this.data.map(d => d.totalInvestment),
+                borderColor: ChartRenderer.getCssColor('--s8'),
+                backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                borderWidth: 1,
+                order: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -614,9 +619,10 @@ class ChartRenderer {
             {
                 label: '公积金',
                 data: this.data.map(d => d.providentFund),
-                borderColor: ChartRenderer.getCssColor('--s4'),
-                backgroundColor: 'rgba(235, 104, 52, 0.2)',
-                borderWidth: 2,
+                borderColor: ChartRenderer.getCssColor('--s1'),
+                backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                borderWidth: 1,
+                order: 1,
                 tension: 0.4,
                 pointStyle: 'circle',
                 pointRadius: 0,
@@ -640,7 +646,7 @@ class ChartRenderer {
         const container = document.querySelector('.card:nth-child(6) .chart');
         const labels = ['储备金', '风险仓位', '稳健仓位'];
         const data = [latest.reserveFund, latest.riskPosition, latest.stableFund];
-        const backgroundColors = [ChartRenderer.getCssColor('--s6'), ChartRenderer.getCssColor('--s4'), ChartRenderer.getCssColor('--s3')];
+        const backgroundColors = [ChartRenderer.getCssColor('--s2'), ChartRenderer.getCssColor('--s4'), ChartRenderer.getCssColor('--s3')];
 
         this.renderPieChart(container, '投资资金构成占比', labels, data, backgroundColors);
     }
