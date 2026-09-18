@@ -137,6 +137,7 @@ class DataLoader {
 class ChartRenderer {
     constructor(data) {
         this.data = data;
+        this.charts = new Map(); // 存储所有Chart.js实例
     }
 
     // 渲染所有图表
@@ -204,213 +205,386 @@ class ChartRenderer {
         });
     }
 
-    // 通用折线图渲染
-    renderLineChart(container, series, viewBox, plotArea, colors) {
-        const svg = container.querySelector('svg');
-        if (!svg) return;
-
-        // 保存原始 viewBox 用于交互
-        const [vbX, vbY, vbW, vbH] = viewBox;
-        svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
-        svg.setAttribute('preserveAspectRatio', 'none');
-
-        // 清空 SVG（保留 defs 如果有的话）
-        const defs = svg.querySelector('defs');
-        svg.innerHTML = '';
-        if (defs) svg.appendChild(defs);
-
-        const { left, right, top, bottom } = plotArea;
-        const plotWidth = right - left;
-        const plotHeight = bottom - top;
-
-        // 获取所有数值范围
-        const allValues = series.flatMap(s => s.data.map(d => d.value));
-        const minValue = Math.min(...allValues, 0);
-        const maxValue = Math.max(...allValues);
-        const valueRange = maxValue - minValue || 1;
-
-        // 时间范围
-        const minTime = this.data[0].date.getTime();
-        const maxTime = this.data[this.data.length - 1].date.getTime();
-        const timeRange = maxTime - minTime || 1;
-
-        // 映射函数
-        const mapX = (date) => left + ((date.getTime() - minTime) / timeRange) * plotWidth;
-        const mapY = (value) => bottom - ((value - minValue) / valueRange) * plotHeight;
-
-        // 绘制网格线
-        for (let i = 0; i <= 4; i++) {
-            const y = top + (plotHeight / 4) * i;
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('class', 'gridline');
-            line.setAttribute('x1', left);
-            line.setAttribute('y1', y);
-            line.setAttribute('x2', right);
-            line.setAttribute('y2', y);
-            svg.appendChild(line);
+    // 渲染折线图使用Chart.js
+    renderLineChart(container, chartTitle, labels, datasets) {
+        // 清除之前创建的图表
+        if (this.charts.has(container)) {
+            this.charts.get(container).destroy();
         }
 
-        // 绘制 x 轴线
-        const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        axisLine.setAttribute('class', 'axis-line');
-        axisLine.setAttribute('x1', left);
-        axisLine.setAttribute('y1', bottom);
-        axisLine.setAttribute('x2', right);
-        axisLine.setAttribute('y2', bottom);
-        svg.appendChild(axisLine);
+        // 创建新的Chart.js图表
+        const ctx = document.createElement('canvas');
+        ctx.width = container.offsetWidth;
+        ctx.height = container.offsetHeight;
+        container.innerHTML = '';
+        container.appendChild(ctx);
 
-        // 绘制每个系列
-        series.forEach((s, index) => {
-            const points = s.data.map(d => ({
-                x: mapX(d.date),
-                y: mapY(d.value)
-            }));
+        // 检查Chart是否存在
+        if (typeof Chart !== 'undefined' && Chart && Chart.defaults) {
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: false
+                            // 隐藏图表标题
+                        },
+                        legend: {
+                            display: false
+                            // 隐藏图例，因为图例已在卡片左上角显示
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: false
+                                // 隐藏标题文字，只显示数字
+                            },
+                            ticks: {
+                                // 格式化横坐标显示，去掉年份前缀
+                                callback: function(value, index, values) {
+                                    // Chart.js v3+ 传入的是索引，需要通过getLabelForValue获取真实标签
+                                    const label = this.getLabelForValue(value);
+                                    // 如果是日期格式，格式化为YY/MM/DD
+                                    if (label && typeof label === 'string' && label.includes('/')) {
+                                        const parts = label.split('/');
+                                        if (parts.length >= 3) {
+                                            const year = parts[0];
+                                            const month = parts[1];
+                                            const day = parts[2];
+                                            // 只保留年份后两位
+                                            const shortYear = year.length === 4 ? year.slice(2) : year;
+                                            return shortYear + '/' + month + '/' + day;
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: false
+                                // 隐藏标题文字，只显示数字
+                            },
+                            ticks: {
+                                // 格式化纵坐标显示，以w为单位
+                                callback: function(value) {
+                                    if (value >= 10000) {
+                                        return (value / 10000).toFixed(1) + 'w';
+                                    }
+                                    return value;
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4, // 平滑曲线
+                            borderWidth: 2
+                        },
+                        point: {
+                            display: false // 不在节点处显示图形
+                        }
+                    }
+                }
+            });
 
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('class', 'ln');
-            path.setAttribute('style', `stroke:${colors[index]}`);
-            path.setAttribute('d', this.generateSmoothPath(points));
-            svg.appendChild(path);
-        });
-
-        // 生成 x 轴标签（固定位置，避免缩放变形）
-        this.generateAxisLabels(container, left, right, minTime, maxTime);
-
-        // 存储参数，供缩放时动态更新标签
-        container.dataset.minTime = minTime;
-        container.dataset.maxTime = maxTime;
-        container.dataset.plotLeft = left;
-        container.dataset.plotRight = right;
-        container.dataset.origViewBoxW = vbW;
-    }
-
-    // 生成平滑曲线路径（三次贝塞尔）
-    generateSmoothPath(points) {
-        if (points.length === 0) return '';
-        if (points.length === 1) return `M${points[0].x},${points[0].y}`;
-        if (points.length === 2) return `M${points[0].x},${points[0].y} L${points[1].x},${points[1].y}`;
-
-        let d = `M${points[0].x},${points[0].y}`;
-        for (let i = 0; i < points.length - 1; i++) {
-            const p0 = points[i === 0 ? 0 : i - 1];
-            const p1 = points[i];
-            const p2 = points[i + 1];
-            const p3 = points[i + 2] || p2;
-
-            const cp1x = p1.x + (p2.x - p0.x) / 6;
-            const cp1y = p1.y + (p2.y - p0.y) / 6;
-            const cp2x = p2.x - (p3.x - p1.x) / 6;
-            const cp2y = p2.y - (p3.y - p1.y) / 6;
-
-            d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+            this.charts.set(container, chart);
         }
-        return d;
     }
 
-    // 在 SVG 内生成时间标签（后续会被提取为 HTML）
-    generateAxisLabels(container, left, right, minTime, maxTime) {
-        const svg = container.querySelector('svg');
-        const labelCount = 5;
-        for (let i = 0; i < labelCount; i++) {
-            const t = minTime + (maxTime - minTime) * (i / (labelCount - 1));
-            const date = new Date(t);
-            const x = left + (right - left) * (i / (labelCount - 1));
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('class', 'tick');
-            text.setAttribute('x', x);
-            text.setAttribute('y', parseFloat(svg.getAttribute('viewBox').split(/\s+/)[3]) - 8);
-            text.textContent = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
-            svg.appendChild(text);
+    // 渲染柱状图使用Chart.js
+    renderBarChart(container, chartTitle, labels, datasets) {
+        // 清除之前创建的图表
+        if (this.charts.has(container)) {
+            this.charts.get(container).destroy();
+        }
+
+        // 创建新的Chart.js图表
+        const ctx = document.createElement('canvas');
+        ctx.width = container.offsetWidth;
+        ctx.height = container.offsetHeight;
+        container.innerHTML = '';
+        container.appendChild(ctx);
+
+        // 检查Chart是否存在
+        if (typeof Chart !== 'undefined' && Chart && Chart.defaults) {
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: chartTitle
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: false
+                                // 隐藏标题文字，只显示数字
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: false
+                                // 隐藏标题文字，只显示数字
+                            }
+                        }
+                    }
+                }
+            });
+
+            this.charts.set(container, chart);
+        }
+    }
+
+    // 渲染饼图使用Chart.js
+    renderPieChart(container, chartTitle, labels, data, backgroundColors) {
+        // 清除之前创建的图表
+        if (this.charts.has(container)) {
+            this.charts.get(container).destroy();
+        }
+
+        // 创建新的Chart.js图表
+        const ctx = document.createElement('canvas');
+        ctx.width = container.offsetWidth;
+        ctx.height = container.offsetHeight;
+        container.innerHTML = '';
+        container.appendChild(ctx);
+
+        // 检查Chart是否存在
+        if (typeof Chart !== 'undefined' && Chart && Chart.defaults) {
+            const chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: chartTitle
+                        },
+                        legend: {
+                            display: true,
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+
+            this.charts.set(container, chart);
         }
     }
 
     renderChart1() {
         const container = document.querySelector('.card:nth-child(1) .chart');
-        this.renderLineChart(container, [
-            { name: '总资产', data: this.data.map(d => ({ date: d.date, value: d.totalAssets })) },
-            { name: '负债', data: this.data.map(d => ({ date: d.date, value: d.debt })) },
-            { name: '净资产', data: this.data.map(d => ({ date: d.date, value: d.netAssets })) }
-        ], [0, 0, 640, 220], { left: 50, right: 640, top: 20, bottom: 200 }, ['var(--s1)', 'var(--s2)', 'var(--s3)']);
+        const labels = this.data.map(d => d.dateStr);
+        const datasets = [
+            {
+                label: '总资产',
+                data: this.data.map(d => d.totalAssets),
+                borderColor: 'var(--s1)',
+                backgroundColor: 'rgba(42, 120, 214, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '负债',
+                data: this.data.map(d => d.debt),
+                borderColor: 'var(--s2)',
+                backgroundColor: 'rgba(227, 73, 72, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '净资产',
+                data: this.data.map(d => d.netAssets),
+                borderColor: 'var(--s3)',
+                backgroundColor: 'rgba(27, 175, 122, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            }
+        ];
+
+        this.renderLineChart(container, '总资产 / 负债 / 净资产', labels, datasets);
     }
 
     renderChart2() {
         const container = document.querySelector('.card:nth-child(2) .chart');
-        this.renderLineChart(container, [
-            { name: '活期', data: this.data.map(d => ({ date: d.date, value: d.currentDeposit })) },
-            { name: '应急资金', data: this.data.map(d => ({ date: d.date, value: d.emergencyFund })) },
-            { name: '流动资金', data: this.data.map(d => ({ date: d.date, value: d.liquidAssets })) }
-        ], [0, 0, 300, 200], { left: 40, right: 300, top: 20, bottom: 180 }, ['var(--s1)', 'var(--s6)', 'var(--s3)']);
+        const labels = this.data.map(d => d.dateStr);
+        const datasets = [
+            {
+                label: '活期',
+                data: this.data.map(d => d.currentDeposit),
+                borderColor: 'var(--s1)',
+                backgroundColor: 'rgba(42, 120, 214, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '应急资金',
+                data: this.data.map(d => d.emergencyFund),
+                borderColor: 'var(--s6)',
+                backgroundColor: 'rgba(237, 161, 0, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '流动资金',
+                data: this.data.map(d => d.liquidAssets),
+                borderColor: 'var(--s3)',
+                backgroundColor: 'rgba(27, 175, 122, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            }
+        ];
+
+        this.renderLineChart(container, '流动资金', labels, datasets);
     }
 
     renderChart3() {
         const container = document.querySelector('.card:nth-child(3) .chart');
-        this.renderLineChart(container, [
-            { name: '储备金', data: this.data.map(d => ({ date: d.date, value: d.reserveFund })) },
-            { name: '稳健基金', data: this.data.map(d => ({ date: d.date, value: d.stableFund })) },
-            { name: '风险基金', data: this.data.map(d => ({ date: d.date, value: d.riskFund })) },
-            { name: '股票', data: this.data.map(d => ({ date: d.date, value: d.stock })) }
-        ], [0, 0, 300, 200], { left: 40, right: 300, top: 20, bottom: 180 }, ['var(--s7)', 'var(--s3)', 'var(--s4)', 'var(--s5)']);
+        const labels = this.data.map(d => d.dateStr);
+        const datasets = [
+            {
+                label: '储备金',
+                data: this.data.map(d => d.reserveFund),
+                borderColor: 'var(--s7)',
+                backgroundColor: 'rgba(0, 131, 0, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '稳健基金',
+                data: this.data.map(d => d.stableFund),
+                borderColor: 'var(--s3)',
+                backgroundColor: 'rgba(27, 175, 122, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '风险基金',
+                data: this.data.map(d => d.riskFund),
+                borderColor: 'var(--s4)',
+                backgroundColor: 'rgba(235, 104, 52, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            },
+            {
+                label: '股票',
+                data: this.data.map(d => d.stock),
+                borderColor: 'var(--s5)',
+                backgroundColor: 'rgba(232, 123, 164, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            }
+        ];
+
+        this.renderLineChart(container, '投资资金', labels, datasets);
     }
 
     renderChart4() {
         const container = document.querySelector('.card:nth-child(4) .chart');
-        this.renderLineChart(container, [
-            { name: '公积金', data: this.data.map(d => ({ date: d.date, value: d.providentFund })) }
-        ], [0, 0, 300, 200], { left: 40, right: 300, top: 20, bottom: 180 }, ['var(--s4)']);
-    }
+        const labels = this.data.map(d => d.dateStr);
+        const datasets = [
+            {
+                label: '公积金',
+                data: this.data.map(d => d.providentFund),
+                borderColor: 'var(--s4)',
+                backgroundColor: 'rgba(235, 104, 52, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointStyle: 'circle',
+                pointRadius: 0,
+                pointHoverRadius: 0
+            }
+        ];
 
-    renderPieChart(svg, items, centerX, centerY, radius) {
-        svg.innerHTML = '';
-        const total = items.reduce((sum, item) => sum + item.value, 0);
-        const circumference = 2 * Math.PI * radius;
-        let offset = 0;
-
-        items.forEach(item => {
-            const ratio = total > 0 ? item.value / total : 0;
-            const dashArray = `${circumference * ratio} ${circumference}`;
-            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', centerX);
-            circle.setAttribute('cy', centerY);
-            circle.setAttribute('r', radius);
-            circle.setAttribute('fill', 'none');
-            circle.setAttribute('stroke', item.color);
-            circle.setAttribute('stroke-width', '24');
-            circle.setAttribute('stroke-dasharray', dashArray);
-            circle.setAttribute('stroke-dashoffset', -offset);
-            circle.setAttribute('transform', `rotate(-90 ${centerX} ${centerY})`);
-            svg.appendChild(circle);
-            offset += circumference * ratio;
-        });
-
-        // 中心文字
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('class', 'tick');
-        text.setAttribute('x', centerX);
-        text.setAttribute('y', centerY - 5);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'var(--ink-primary)');
-        text.textContent = items[0]?.label === '流动资金' ? '总资产' : '投资资金';
-        svg.appendChild(text);
+        this.renderLineChart(container, '公积金', labels, datasets);
     }
 
     renderChart5(latest) {
-        const svg = document.querySelector('.card:nth-child(5) .chart svg');
-        if (!svg) return;
-        this.renderPieChart(svg, [
-            { color: 'var(--s1)', value: latest.liquidAssets },
-            { color: 'var(--s2)', value: latest.fixedAssets },
-            { color: 'var(--s3)', value: latest.investment }
-        ], 130, 85, 52);
+        const container = document.querySelector('.card:nth-child(5) .chart');
+        const labels = ['流动资金', '固定资本', '投资'];
+        const data = [latest.liquidAssets, latest.fixedAssets, latest.investment];
+        const backgroundColors = ['var(--s1)', 'var(--s2)', 'var(--s3)'];
+
+        this.renderPieChart(container, '总资产构成占比', labels, data, backgroundColors);
     }
 
     renderChart6(latest) {
-        const svg = document.querySelector('.card:nth-child(6) .chart svg');
-        if (!svg) return;
-        this.renderPieChart(svg, [
-            { color: 'var(--s6)', value: latest.reserveFund },
-            { color: 'var(--s4)', value: latest.riskPosition },
-            { color: 'var(--s3)', value: latest.stableFund }
-        ], 130, 85, 52);
+        const container = document.querySelector('.card:nth-child(6) .chart');
+        const labels = ['储备金', '风险仓位', '稳健仓位'];
+        const data = [latest.reserveFund, latest.riskPosition, latest.stableFund];
+        const backgroundColors = ['var(--s6)', 'var(--s4)', 'var(--s3)'];
+
+        this.renderPieChart(container, '投资资金构成占比', labels, data, backgroundColors);
     }
 }
 
