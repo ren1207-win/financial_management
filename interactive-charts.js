@@ -781,7 +781,7 @@ class FinancialChartHandler {
                 compoundChart.destroy();
             }
 
-            const labels = Array.from({ length: 20 }, (_, i) => i + 1);
+            const labels = Array.from({ length: 30 }, (_, i) => i + 1);
             const data = labels.map(year => calculateFV(startAmount, amount, rate, year));
 
             const ctx = document.createElement('canvas');
