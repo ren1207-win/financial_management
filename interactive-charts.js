@@ -887,7 +887,27 @@ class ChartRenderer {
 
         console.log('图表创建完成，存储实例...');
         this.charts.set(container, chart);
+
+        // 更新结余总金额显示
+        this.updateMonthlyBalance(data);
         console.log('月度收支图表渲染完成');
+    }
+
+    // 更新月度收支卡的结余总金额显示
+    updateMonthlyBalance(monthlyData) {
+        if (!monthlyData || monthlyData.length === 0) return;
+
+        // 计算最近12个月的总结余
+        let totalBalance = 0;
+        monthlyData.forEach(record => {
+            totalBalance += record.balance;
+        });
+
+        // 更新页面上的显示
+        const balanceElement = document.getElementById('monthlyBalance');
+        if (balanceElement) {
+            balanceElement.textContent = DataLoader.formatMoney(totalBalance);
+        }
     }
 }
 
