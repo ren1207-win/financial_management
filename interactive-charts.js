@@ -24,6 +24,16 @@ class DataLoader {
         const lines = text.trim().replace(/^﻿/, '').split(/\r?\n/);
         if (lines.length < 2) return [];
 
+        const parseNumber = (v) => {
+            if (!v) return 0;
+            const n = parseFloat(v.replace(/,/g, ''));
+            return isNaN(n) ? 0 : n;
+        };
+
+        // 总收益只在 CSV 最后一行的第三列记录，统一读取该值作为累计总收益
+        const lastRow = lines[lines.length - 1].split(',').map(v => v.trim());
+        const lastTotalIncome = lastRow.length >= 3 ? parseNumber(lastRow[2]) : 0;
+
         const records = [];
         for (let i = 1; i < lines.length; i++) {
             const row = lines[i].split(',').map(v => v.trim());
@@ -32,14 +42,8 @@ class DataLoader {
             const date = this.parseMonthlyDate(row[0]);
             if (!date) continue;
 
-            const parseNumber = (v) => {
-                if (!v) return 0;
-                const n = parseFloat(v.replace(/,/g, ''));
-                return isNaN(n) ? 0 : n;
-            };
-
             const income = parseNumber(row[1]);
-            const totalIncome = row.length >= 3 ? parseNumber(row[2]) : 0; // 总收益字段是第三列
+            const totalIncome = lastTotalIncome;
 
             // 直接使用原始日期字符串，不进行额外格式化
             const originalDateStr = row[0];
@@ -623,13 +627,13 @@ class ChartRenderer {
                     {
                         label: '月度收益',
                         data: income,
-                        borderColor: ChartRenderer.getCssColor('--s3'),
-                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        borderColor: ChartRenderer.getCssColor('--s1'),
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
                         borderWidth: 2,
                         tension: 0.4, // 平滑曲线
                         pointRadius: 3,
                         pointHoverRadius: 5,
-                        pointBackgroundColor: ChartRenderer.getCssColor('--s3'),
+                        pointBackgroundColor: ChartRenderer.getCssColor('--s1'),
                         fill: false,
                         yAxisID: 'y'
                     }
@@ -698,10 +702,17 @@ class ChartRenderer {
         const latest = monthlyData[monthlyData.length - 1];
         const totalIncome = latest.totalIncome;
 
+        // 添加调试输出
+        console.log('Updating investment total income:', { latest, totalIncome });
+
         // 更新页面上的显示
         const totalIncomeElement = document.querySelector('.card:nth-child(8) .net-badge .value');
         if (totalIncomeElement && totalIncome !== undefined) {
-            totalIncomeElement.textContent = DataLoader.formatMoney(totalIncome);
+            const formatted = DataLoader.formatMoney(totalIncome);
+            console.log('Setting element text to:', formatted);
+            totalIncomeElement.textContent = formatted;
+        } else {
+            console.log('Could not find total income element or invalid total income');
         }
     }
 
@@ -945,8 +956,8 @@ class ChartRenderer {
                     {
                         label: '收入',
                         data: income,
-                        backgroundColor: ChartRenderer.getCssColor('--s3'),
-                        borderColor: ChartRenderer.getCssColor('--s3'),
+                        backgroundColor: ChartRenderer.getCssColor('--s1'),
+                        borderColor: ChartRenderer.getCssColor('--s1'),
                         borderWidth: 0,
                         borderRadius: 4,
                         barPercentage: 0.7,
@@ -957,8 +968,8 @@ class ChartRenderer {
                     {
                         label: '支出',
                         data: expense,
-                        backgroundColor: ChartRenderer.getCssColor('--s1'),
-                        borderColor: ChartRenderer.getCssColor('--s1'),
+                        backgroundColor: ChartRenderer.getCssColor('--s3'),
+                        borderColor: ChartRenderer.getCssColor('--s3'),
                         borderWidth: 0,
                         borderRadius: 4,
                         barPercentage: 0.7,
@@ -1076,7 +1087,7 @@ class ChartRenderer {
 
         // 清理旧图表
         const existingChart = this.charts.get(container);
-        if (existingChart) {
+        if (existingChart) {  
             existingChart.destroy();
             this.charts.delete(container);
         }
@@ -1103,13 +1114,13 @@ class ChartRenderer {
                     {
                         label: '月度收益',
                         data: income,
-                        borderColor: ChartRenderer.getCssColor('--s3'),
-                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        borderColor: ChartRenderer.getCssColor('--s1'),
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
                         borderWidth: 2,
                         tension: 0.4, // 平滑曲线
                         pointRadius: 3,
                         pointHoverRadius: 5,
-                        pointBackgroundColor: ChartRenderer.getCssColor('--s3'),
+                        pointBackgroundColor: ChartRenderer.getCssColor('--s1'),
                         fill: false,
                         yAxisID: 'y'
                     }
@@ -1142,14 +1153,30 @@ class ChartRenderer {
                 scales: {
                     x: {
                         display: true,
-                        grid: { display: false },
+                        border: { display: false },
+                        grid: { display: false, drawBorder: false },
                         ticks: { color: secondaryColor }
                     },
                     y: {
                         display: true,
                         position: 'left',
-                        beginAtZero: true,
-                        grid: { color: gridColor },
+                        beginAtZero: false,
+                        grid: {
+                            // 让 y=0 的网格线充当 x 轴
+                            color: function(context) {
+                                if (context.tick.value === 0) {
+                                    return 'rgba(11, 11, 11, 0.5)';
+                                }
+                                return gridColor;
+                            },
+                            lineWidth: function(context) {
+                                if (context.tick.value === 0) {
+                                    return 1.5;
+                                }
+                                return 1;
+                            },
+                            drawOnChartArea: true
+                        },
                         ticks: {
                             color: secondaryColor,
                             callback: function(value) {
@@ -1159,6 +1186,16 @@ class ChartRenderer {
                                 return value;
                             }
                         }
+                    }
+                },
+                // 添加点配置确保图表效果正确
+                elements: {
+                    line: {
+                        borderWidth: 2
+                    },
+                    point: {
+                        radius: 3,
+                        hoverRadius: 5
                     }
                 }
             }
@@ -1178,10 +1215,17 @@ class ChartRenderer {
         const latest = monthlyData[monthlyData.length - 1];
         const totalIncome = latest.totalIncome;
 
+        // 添加调试输出
+        console.log('Updating investment total income:', { latest, totalIncome });
+
         // 更新页面上的显示
         const totalIncomeElement = document.querySelector('.card:nth-child(8) .net-badge .value');
         if (totalIncomeElement && totalIncome !== undefined) {
-            totalIncomeElement.textContent = DataLoader.formatMoney(totalIncome);
+            const formatted = DataLoader.formatMoney(totalIncome);
+            console.log('Setting element text to:', formatted);
+            totalIncomeElement.textContent = formatted;
+        } else {
+            console.log('Could not find total income element or invalid total income');
         }
     }
 
@@ -1573,8 +1617,8 @@ class FinancialDashboard {
             const text = await response.text();
             const records = DataLoader.parseInvestmentIncomeCsv(text);
 
-            // 打印投资收益数据
-            console.log('投资收益数据（从' + CONFIG.INVEST_DATA_PATH + '读取）:', records);
+            // 正确更新 monthlyData 以供后续使用
+            this.monthlyData = records;
 
             // 用专门的 ChartRenderer 对象渲染投资收益图表（独立数据源）
             const renderer = new ChartRenderer(this.data, records);
