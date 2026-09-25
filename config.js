@@ -6,6 +6,9 @@ const CONFIG = {
     // 月度收支数据源路径
     MONTHLY_DATA_PATH: 'monthly_financial_data.csv',
 
+    // 月度投资收益数据源路径
+    INVEST_DATA_PATH: 'invest_income_data.csv',
+
     // 数据源名称
     DATA_SOURCE_NAME: 'data.xlsx',
 
