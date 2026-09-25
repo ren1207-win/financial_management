@@ -3,6 +3,9 @@ const CONFIG = {
     // 默认数据源路径
     DATA_SOURCE_PATH: 'data.xlsx',
 
+    // 月度收支数据源路径
+    MONTHLY_DATA_PATH: 'monthly_financial_data.csv',
+
     // 数据源名称
     DATA_SOURCE_NAME: 'data.xlsx',
 

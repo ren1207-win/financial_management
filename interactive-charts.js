@@ -156,12 +156,85 @@ class DataLoader {
     static formatMoneyTable(value) {
         return `¥ ${value.toFixed(0)}`;
     }
+
+    // 读取月度收支 CSV 文件
+    static async loadMonthlyCsv(path) {
+        const response = await fetch(path);
+        if (!response.ok) {
+            throw new Error(`无法读取月度数据：${path}，状态码：${response.status}`);
+        }
+        const text = await response.text();
+        return this.parseMonthlyCsv(text);
+    }
+
+    // 解析月度收支 CSV（格式：日期,收入,支出,结余）
+    static parseMonthlyCsv(text) {
+        const lines = text.trim().replace(/^﻿/, '').split(/\r?\n/);
+        if (lines.length < 2) return [];
+
+        const records = [];
+        for (let i = 1; i < lines.length; i++) {
+            const row = lines[i].split(',').map(v => v.trim());
+            if (row.length < 4) continue;
+
+            const date = this.parseMonthlyDate(row[0]);
+            if (!date) continue;
+
+            const parseNumber = (v) => {
+                if (!v) return 0;
+                const n = parseFloat(v.replace(/,/g, ''));
+                return isNaN(n) ? 0 : n;
+            };
+
+            const income = parseNumber(row[1]);
+            const expense = parseNumber(row[2]);
+            const balance = parseNumber(row[3]);
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+
+            records.push({
+                date,
+                dateStr: this.formatDate(date),
+                monthLabel: `${year}/${month}`,
+                income,
+                expense,
+                balance
+            });
+        }
+
+        records.sort((a, b) => a.date - b.date);
+        return records;
+    }
+
+    // 解析月度数据中的日期（处理26/8这样的格式）
+    static parseMonthlyDate(value) {
+        if (!value) return null;
+
+        // 尝试接收简单的日期格式如 "26/8"
+        const parts = value.split('/');
+        if (parts.length === 2) {
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // 月份从0开始
+            const year = new Date().getFullYear(); // 使用当前年份
+
+            // 创建日期对象
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+        }
+
+        // 如果上面的方法失败，使用原来的方法
+        return this.parseDate(value);
+    }
 }
 
 // ========== 图表渲染 ==========
 class ChartRenderer {
-    constructor(data) {
+    constructor(data, monthlyData = null) {
         this.data = data;
+        this.monthlyData = monthlyData;
         this.charts = new Map(); // 存储所有Chart.js实例
     }
 
@@ -200,6 +273,7 @@ class ChartRenderer {
         this.renderChart4();
         this.renderChart5(latest);
         this.renderChart6(latest);
+        this.renderMonthlyIncomeExpense();
     }
 
     // 更新右上角金额徽章
@@ -650,6 +724,171 @@ class ChartRenderer {
 
         this.renderPieChart(container, '投资资金构成占比', labels, data, backgroundColors);
     }
+
+    // 渲染 p3 卡片：月度收支条形图（最近 12 个月）
+    renderMonthlyIncomeExpense() {
+        console.log('开始渲染月度收支图表...');
+        if (!this.monthlyData || this.monthlyData.length === 0) {
+            console.log('没有月度数据可供渲染');
+            return;
+        }
+
+        const container = document.querySelector('.card:nth-child(7) .chart');
+        if (!container) {
+            console.log('未找到图表容器');
+            return;
+        }
+
+        console.log('找到图表容器，开始处理数据...');
+
+        // 只取最近 12 个月，不足则取全部
+        const data = this.monthlyData.slice(-12);
+        const labels = data.map(d => d.monthLabel);
+        const income = data.map(d => d.income);
+        const expense = data.map(d => d.expense);
+        // 结余数据已解析并保留，便于后续直接叠加折线图
+        const balance = data.map(d => d.balance);
+
+        console.log('数据准备完成，开始清理旧图表...');
+        // 清理旧图表
+        const existingChart = this.charts.get(container);
+        if (existingChart) {
+            console.log('销毁旧图表...');
+            existingChart.destroy();
+            this.charts.delete(container);
+        }
+
+        if (typeof Chart === 'undefined' || !Chart.defaults) {
+            console.log('Chart.js未加载');
+            return;
+        }
+
+        console.log('创建新图表容器...');
+        // 创建新的canvas元素
+        const canvas = document.createElement('canvas');
+        container.innerHTML = '';
+        container.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        const secondaryColor = ChartRenderer.getCssColor('--ink-secondary');
+        const gridColor = 'rgba(11,11,11,0.06)';
+
+        console.log('创建 Chart 对象...');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '收入',
+                        data: income,
+                        backgroundColor: ChartRenderer.getCssColor('--s3'),
+                        borderColor: ChartRenderer.getCssColor('--s3'),
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8,
+                        order: 2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '支出',
+                        data: expense,
+                        backgroundColor: ChartRenderer.getCssColor('--s1'),
+                        borderColor: ChartRenderer.getCssColor('--s1'),
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8,
+                        order: 2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '结余',
+                        data: balance,
+                        type: 'line',
+                        borderColor: ChartRenderer.getCssColor('--s2'),
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        tension: 0,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: ChartRenderer.getCssColor('--s2'),
+                        fill: false,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: false },
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                const value = context.parsed.y;
+                                if (Math.abs(value) >= 10000) {
+                                    label += (value / 10000).toFixed(1) + '万';
+                                } else {
+                                    label += value.toLocaleString();
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: { display: false },
+                        ticks: { color: secondaryColor }
+                    },
+                    y: {
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        ticks: {
+                            color: secondaryColor,
+                            callback: function(value) {
+                                if (Math.abs(value) >= 10000) {
+                                    return (value / 10000).toFixed(1) + 'w';
+                                }
+                                return value;
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            color: secondaryColor,
+                            callback: function(value) {
+                                if (Math.abs(value) >= 10000) {
+                                    return (value / 10000).toFixed(1) + 'w';
+                                }
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        console.log('图表创建完成，存储实例...');
+        this.charts.set(container, chart);
+        console.log('月度收支图表渲染完成');
+    }
 }
 
 // ========== 交互处理 ==========
@@ -726,7 +965,7 @@ class FinancialChartHandler {
         }
 
         if (filteredData.length > 0) {
-            const renderer = new ChartRenderer(filteredData);
+            const renderer = new ChartRenderer(filteredData, window.financialDashboard.monthlyData || null);
             renderer.renderAll();
             DataTable.render(filteredData);
 
@@ -915,6 +1154,7 @@ class DataTable {
 class FinancialDashboard {
     constructor() {
         this.data = [];
+        this.monthlyData = [];
         this.chartHandler = new FinancialChartHandler();
     }
 
@@ -1002,6 +1242,26 @@ class FinancialDashboard {
         }
     }
 
+    // 加载月度收支 CSV 并渲染 p3 卡片条形图
+    async loadMonthlyData() {
+        try {
+            console.log('开始加载月度数据:', CONFIG.MONTHLY_DATA_PATH);
+            const records = await DataLoader.loadMonthlyCsv(CONFIG.MONTHLY_DATA_PATH);
+            console.log('月度数据加载完成，共', records.length, '条记录');
+            console.log('前5条记录:', records.slice(0, 5));
+            this.monthlyData = records;
+            this.renderMonthlyChart();
+        } catch (err) {
+            console.error('读取月度数据失败：', err);
+        }
+    }
+
+    renderMonthlyChart() {
+        if (this.monthlyData.length === 0) return;
+        const renderer = new ChartRenderer(this.data, this.monthlyData);
+        renderer.renderMonthlyIncomeExpense();
+    }
+
     calculateDataSpanYears() {
         if (this.data.length < 2) return 1;
         const start = this.data[0].date;
@@ -1024,4 +1284,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (typeof CONFIG !== 'undefined' && CONFIG && CONFIG.USE_FIXED_DATA_SOURCE) {
         await window.financialDashboard.loadFixedDataSource();
     }
+
+    // 月度收支数据独立加载，始终展示最近 12 个月，不受时间筛选影响
+    await window.financialDashboard.loadMonthlyData();
 });
