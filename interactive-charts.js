@@ -57,7 +57,19 @@ class DataLoader {
             });
         }
 
-        records.sort((a, b) => a.date - b.date);
+        // 确保记录按年月正确排序，解决跨年排序问题
+        records.sort((a, b) => {
+            // 先按年份排序
+            const yearA = a.date.getFullYear();
+            const yearB = b.date.getFullYear();
+            if (yearA !== yearB) {
+                return yearA - yearB;
+            }
+            // 年份相同时，按月份排序
+            const monthA = a.date.getMonth();
+            const monthB = b.date.getMonth();
+            return monthA - monthB;
+        });
         return records;
     }
 
@@ -144,7 +156,19 @@ class DataLoader {
         });
 
         // 按日期升序排序
-        records.sort((a, b) => a.date - b.date);
+        // 确保记录按年月正确排序，解决跨年排序问题
+        records.sort((a, b) => {
+            // 先按年份排序
+            const yearA = a.date.getFullYear();
+            const yearB = b.date.getFullYear();
+            if (yearA !== yearB) {
+                return yearA - yearB;
+            }
+            // 年份相同时，按月份排序
+            const monthA = a.date.getMonth();
+            const monthB = b.date.getMonth();
+            return monthA - monthB;
+        });
         return records;
     }
 
@@ -245,25 +269,50 @@ class DataLoader {
             });
         }
 
-        records.sort((a, b) => a.date - b.date);
+        // 确保记录按年月正确排序，解决跨年排序问题
+        records.sort((a, b) => {
+            // 先按年份排序
+            const yearA = a.date.getFullYear();
+            const yearB = b.date.getFullYear();
+            if (yearA !== yearB) {
+                return yearA - yearB;
+            }
+            // 年份相同时，按月份排序
+            const monthA = a.date.getMonth();
+            const monthB = b.date.getMonth();
+            return monthA - monthB;
+        });
         return records;
     }
 
-    // 解析月度数据中的日期（处理26/8这样的格式）
+    // 解析月度数据中的日期（处理 "25/5" 这种 "YY/M" 年份/月份格式）
     static parseMonthlyDate(value) {
         if (!value) return null;
 
-        // 尝试接收简单的日期格式如 "26/8"
         const parts = value.split('/');
         if (parts.length === 2) {
-            const day = parseInt(parts[0]);
-            const month = parseInt(parts[1]) - 1; // 月份从0开始
-            const year = new Date().getFullYear(); // 使用当前年份
+            const first = parseInt(parts[0], 10);
+            const second = parseInt(parts[1], 10);
 
-            // 创建日期对象
-            const date = new Date(year, month, day);
-            if (!isNaN(date.getTime())) {
-                return date;
+            // 当第一部分大于 12 时，无法是合法的 DD/MM 中的 day，
+            // 应视为年份（两位或四位），第二部分为月份
+            if (!isNaN(first) && !isNaN(second) && first > 12) {
+                const year = first < 100 ? 2000 + first : first;
+                const month = second - 1; // 月份从0开始
+                const date = new Date(year, month, 1);
+                if (!isNaN(date.getTime())) {
+                    return date;
+                }
+            }
+
+            // 兼容旧的 "DD/M" 格式（day <= 12）
+            if (!isNaN(first) && !isNaN(second) && first >= 1 && first <= 12 && second >= 1 && second <= 12) {
+                const year = new Date().getFullYear();
+                const month = second - 1;
+                const date = new Date(year, month, first);
+                if (!isNaN(date.getTime())) {
+                    return date;
+                }
             }
         }
 
@@ -596,7 +645,6 @@ class ChartRenderer {
         const data = this.monthlyData.slice(-12);
         const labels = data.map(d => d.monthLabel);
         const income = data.map(d => d.income);
-        // 获取最新的totalIncome（总收益）作为卡片右上角显示金额
 
         // 清理旧图表
         const existingChart = this.charts.get(container);
@@ -702,14 +750,10 @@ class ChartRenderer {
         const latest = monthlyData[monthlyData.length - 1];
         const totalIncome = latest.totalIncome;
 
-        // 添加调试输出
-        console.log('Updating investment total income:', { latest, totalIncome });
-
         // 更新页面上的显示
         const totalIncomeElement = document.querySelector('.card:nth-child(8) .net-badge .value');
         if (totalIncomeElement && totalIncome !== undefined) {
             const formatted = DataLoader.formatMoney(totalIncome);
-            console.log('Setting element text to:', formatted);
             totalIncomeElement.textContent = formatted;
         } else {
             console.log('Could not find total income element or invalid total income');
@@ -1245,6 +1289,7 @@ class ChartRenderer {
             balanceElement.textContent = DataLoader.formatMoney(totalBalance);
         }
     }
+
 }
 
 // ========== 交互处理 ==========
@@ -1319,8 +1364,28 @@ class FinancialChartHandler {
         }
 
         if (filteredData.length > 0) {
-            const renderer = new ChartRenderer(filteredData, window.financialDashboard.monthlyData || null);
-            renderer.renderAll();
+            // 确保月度数据也按相同时间范围筛选
+            let filteredMonthlyData = window.financialDashboard.monthlyData;
+            if (targetYears) {
+                const latestDate = data[data.length - 1].date;
+                const cutoff = new Date(latestDate);
+                cutoff.setFullYear(cutoff.getFullYear() - targetYears);
+
+                // 过滤月度数据以匹配时间范围
+                filteredMonthlyData = window.financialDashboard.monthlyData.filter(d => d.date >= cutoff);
+            }
+
+            const renderer = new ChartRenderer(filteredData, filteredMonthlyData || null);
+            // 重新渲染除月度收支和投资收益外的图表
+            renderer.renderChart1();
+            renderer.renderChart2();
+            renderer.renderChart3();
+            renderer.renderChart4();
+            renderer.renderChart5(filteredData[filteredData.length - 1]);
+            renderer.renderChart6(filteredData[filteredData.length - 1]);
+            // 不调用 renderer.renderMonthlyIncomeExpense() 和 renderer.renderInvestmentIncomeChart()
+            // 以避免刷新特定卡片
+
             DataTable.render(filteredData);
 
             const latest = filteredData[filteredData.length - 1];
